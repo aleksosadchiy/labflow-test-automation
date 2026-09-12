@@ -2,7 +2,7 @@
 
 - Roadmap Item: Phase 0 — Simulated Lab Backend (API Target) & UI Target Application
 - Related Functional Spec: `functional-spec.md`
-- Status: Draft
+- Status: Completed
 
 ## 1. High-Level Technical Approach
 
