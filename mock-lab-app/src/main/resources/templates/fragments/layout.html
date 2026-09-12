@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Layout Fragments - Mock Lab</title>
+</head>
+<body>
+
+<!--
+  Minimal shared header/nav fragment. Parameterized by page title so each
+  screen can set its own <h1> while sharing the same nav. Login-state aware:
+  the logout form only renders when the session carries the authenticated
+  user attribute (accessed via Thymeleaf's #session-backed `session` map).
+-->
+<div th:fragment="header(title)">
+    <h1 th:text="${title}">Page Title</h1>
+    <nav th:if="${session.authenticatedUser}">
+        <span th:text="'Signed in as ' + ${session.authenticatedUser}"></span>
+        <form th:action="@{/logout}" method="post" style="display:inline">
+            <button type="submit">Log Out</button>
+        </form>
+    </nav>
+</div>
+
+</body>
+</html>

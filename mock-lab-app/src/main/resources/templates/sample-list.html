@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Sample List - Mock Lab</title>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: header('Samples')}"></div>
+
+<p th:if="${samples.isEmpty()}" id="empty-state">No samples registered yet.</p>
+
+<table th:unless="${samples.isEmpty()}" id="sample-table">
+    <thead>
+    <tr>
+        <th>Sample ID</th>
+        <th>Patient</th>
+        <th>Status</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="sample : ${samples}">
+        <td th:text="${sample.sampleId}"></td>
+        <td th:text="${sample.patientName}"></td>
+        <td th:text="${sample.status}"></td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>
