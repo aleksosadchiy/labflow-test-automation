@@ -18,7 +18,7 @@ Each slice leaves `mock-lab-app` in a runnable, `mvn spring-boot:run`-able state
   - [x] Task: Implement a minimal `GET /samples` route (`SampleWebController`) and `sample-list.html` rendering just the "No samples registered yet." empty state, plus `login.html` and a shared `fragments/layout.html`. **[Agent: spring-boot-backend]**
   - [x] Verify: Start the app, then via `curl` (with a cookie jar for session state): confirm `GET /login` returns 200; confirm `GET /samples` without a session redirects to `/login`; `POST /login` with blank fields shows "Username and password are required."; `POST /login` with wrong credentials shows "Invalid username or password."; `POST /login` with the seeded credentials followed by `GET /samples` returns 200 with "No samples registered yet." Stop the app and delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
 
-- [ ] **Slice 2: Register a New Sample**
+- [x] **Slice 2: Register a New Sample**
 
   > A signed-in user creates a sample and sees it appear in the list with status "Accessioned," with every Create-Sample validation message working.
 
@@ -27,7 +27,7 @@ Each slice leaves `mock-lab-app` in a runnable, `mvn spring-boot:run`-able state
   - [x] Task: Implement `SampleService.createSample(patientId, sampleType)` with the exact validation precedence from Technical Considerations §6 (blank patient → blank type → patient not found → invalid type → duplicate ID), creating `Order` + `Sample(ACCESSIONED)` + `ProcessingJob(ACCESSIONED)` together on success. **[Agent: spring-boot-backend]**
   - [x] Task: Implement `SampleWebController` routes `GET /samples/new` and `POST /samples`, `CreateSampleForm`, and `create-sample.html` — Post/Redirect/Get on success, re-render with the single relevant error message on failure. **[Agent: spring-boot-backend]**
   - [x] Task: Update `GET /samples` / `sample-list.html` to render real registered samples (identifier, patient, status) instead of only the empty state. **[Agent: spring-boot-backend]**
-  - [ ] Verify: Sign in via `curl`, then: submit Create Sample with a seeded patient + valid type (confirm redirect and the new sample shows "Accessioned" in the list); submit with blank patient, blank type, an unknown patient ID, and an invalid sample type, confirming each exact message. Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
+  - [x] Verify: Sign in via `curl`, then: submit Create Sample with a seeded patient + valid type (confirm redirect and the new sample shows "Accessioned" in the list); submit with blank patient, blank type, an unknown patient ID, and an invalid sample type, confirming each exact message. Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
 
 - [ ] **Slice 3: View Sample Details & Advance the Workflow**
 
