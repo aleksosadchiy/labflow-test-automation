@@ -46,9 +46,9 @@ Each slice leaves `mock-lab-app` in a runnable, `mvn spring-boot:run`-able state
   - [x] Task: Implement `GET /samples/{id}/report` and `report.html` showing sample identifier, test name, result value, and generation date; add the "View Report" link on the details page once at `REPORT_GENERATED`; show "Report is not ready yet." otherwise. **[Agent: spring-boot-backend]**
   - [x] Verify: Sign in via `curl`, create a sample, advance it through all 8 stages, open its report and confirm all four fields are present; create a second sample and confirm its report shows "Report is not ready yet." before advancing. Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
 
-- [ ] **Slice 5: Feature Testing & Regression**
+- [x] **Slice 5: Feature Testing & Regression**
 
   > Verifies the whole feature end-to-end against functional-spec.md, run after all implementation slices are complete.
 
-  - [ ] Read functional-spec.md acceptance criteria in full. Generate acceptance-level tests that verify the entire feature as a whole — not individual slices. Cover applicable layers (unit for pure logic — `ProcessingJobService`, `SampleService`, `AuthService` — and controller/integration tests for each route's success and failure paths) based on the project's testing stack (JUnit 5 + AssertJ + `@WebMvcTest`/`MockMvc`, per Technical Considerations §8). Write tests with RED validation (must fail before implementation is confirmed done). Annotate each test with `@spec: 001-mock-lab-application` and `@regression` if suitable for long-term regression. **[Agent: testing-expert]**
-  - [ ] Run all generated tests. All must pass. Fix any failures before proceeding. **[Agent: testing-expert]**
+  - [x] Read functional-spec.md acceptance criteria in full. Generate acceptance-level tests that verify the entire feature as a whole — not individual slices. Cover applicable layers (unit for pure logic — `ProcessingJobService`, `SampleService`, `AuthService` — and controller/integration tests for each route's success and failure paths) based on the project's testing stack (JUnit 5 + AssertJ + `@WebMvcTest`/`MockMvc`, per Technical Considerations §8). Write tests with RED validation (must fail before implementation is confirmed done). Annotate each test with `@spec: 001-mock-lab-application` and `@regression` if suitable for long-term regression. **[Agent: testing-expert]**
+  - [x] Run all generated tests. All must pass. Fix any failures before proceeding. **[Agent: testing-expert]**
