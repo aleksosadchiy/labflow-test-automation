@@ -5,7 +5,9 @@ import com.mocklab.domain.Sample;
 import com.mocklab.domain.SampleStatus;
 import com.mocklab.domain.SampleType;
 import com.mocklab.repository.ProcessingJobRepository;
+import com.mocklab.repository.ReportRepository;
 import com.mocklab.repository.SampleRepository;
+import com.mocklab.repository.TestResultRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,13 +30,18 @@ class ProcessingJobServiceTest {
     private ProcessingJobService processingJobService;
     private ProcessingJobRepository processingJobRepository;
     private SampleRepository sampleRepository;
+    private TestResultRepository testResultRepository;
+    private ReportRepository reportRepository;
 
     @BeforeEach
     void setUp() {
         processingJobRepository = new ProcessingJobRepository();
         sampleRepository = new SampleRepository();
+        testResultRepository = new TestResultRepository();
+        reportRepository = new ReportRepository();
 
-        processingJobService = new ProcessingJobService(processingJobRepository, sampleRepository);
+        ReportService reportService = new ReportService(testResultRepository, reportRepository);
+        processingJobService = new ProcessingJobService(processingJobRepository, sampleRepository, reportService);
 
         Instant now = Instant.now();
         sampleRepository.save(new Sample(
@@ -116,5 +123,45 @@ class ProcessingJobServiceTest {
         Optional<ProcessingJob> result = processingJobService.advance("SMP-NOPE");
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void earlyStageAdvancesDoNotPrematurelyCreateTestResultOrReport() {
+        // ACCESSIONED -> READY_FOR_PROCESSING
+        processingJobService.advance(SAMPLE_ID);
+
+        assertThat(testResultRepository.findBySampleId(SAMPLE_ID)).isEmpty();
+        assertThat(reportRepository.findBySampleId(SAMPLE_ID)).isEmpty();
+    }
+
+    @Test
+    void enteringResultReadyCreatesTestResult() {
+        // ACCESSIONED -> READY_FOR_PROCESSING -> PROCESSING -> SEQUENCING
+        // -> BIOINFORMATICS -> QUALITY_CHECK -> RESULT_READY
+        for (int i = 0; i < 6; i++) {
+            processingJobService.advance(SAMPLE_ID);
+        }
+        assertThat(processingJobRepository.findBySampleId(SAMPLE_ID).get().currentStatus())
+                .isEqualTo(SampleStatus.RESULT_READY);
+
+        Optional<com.mocklab.domain.TestResult> testResult = testResultRepository.findBySampleId(SAMPLE_ID);
+        assertThat(testResult).isPresent();
+        assertThat(testResult.get().testName()).isNotBlank();
+        assertThat(testResult.get().resultValue()).isNotBlank();
+        assertThat(reportRepository.findBySampleId(SAMPLE_ID)).isEmpty();
+    }
+
+    @Test
+    void enteringReportGeneratedCreatesReport() {
+        // drive all the way to REPORT_GENERATED (7 advances from ACCESSIONED)
+        for (int i = 0; i < 7; i++) {
+            processingJobService.advance(SAMPLE_ID);
+        }
+        assertThat(processingJobRepository.findBySampleId(SAMPLE_ID).get().currentStatus())
+                .isEqualTo(SampleStatus.REPORT_GENERATED);
+
+        Optional<com.mocklab.domain.Report> report = reportRepository.findBySampleId(SAMPLE_ID);
+        assertThat(report).isPresent();
+        assertThat(report.get().generatedAt()).isNotNull();
     }
 }

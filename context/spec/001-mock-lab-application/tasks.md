@@ -38,13 +38,13 @@ Each slice leaves `mock-lab-app` in a runnable, `mvn spring-boot:run`-able state
   - [x] Task: Implement `POST /samples/{id}/advance`, wired to `ProcessingJobService.advance()`; the Advance button is shown on the details page unless the sample is at `REPORT_GENERATED`. **[Agent: spring-boot-backend]**
   - [x] Verify: Sign in via `curl`, create a sample, open its details (confirm current stage + full 8-stage list), then `POST` the advance route repeatedly and confirm the status moves one stage at a time and the Advance action stops changing anything once `REPORT_GENERATED` is reached; open details for a made-up ID and confirm "Sample not found." Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
 
-- [ ] **Slice 4: View Report**
+- [x] **Slice 4: View Report**
 
   > Once a sample reaches "Report Generated," its report is viewable with sample ID, test name, result value, and generation date; earlier, viewing the report shows "Report is not ready yet."
 
-  - [ ] Task: Implement the `TestResult` and `Report` domains + repositories, and `ReportService`, wired into `ProcessingJobService.advance()` so entering `RESULT_READY` creates the `TestResult` (fixed/deterministic placeholder values) and entering `REPORT_GENERATED` creates the `Report`. **[Agent: spring-boot-backend]**
-  - [ ] Task: Implement `GET /samples/{id}/report` and `report.html` showing sample identifier, test name, result value, and generation date; add the "View Report" link on the details page once at `REPORT_GENERATED`; show "Report is not ready yet." otherwise. **[Agent: spring-boot-backend]**
-  - [ ] Verify: Sign in via `curl`, create a sample, advance it through all 8 stages, open its report and confirm all four fields are present; create a second sample and confirm its report shows "Report is not ready yet." before advancing. Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
+  - [x] Task: Implement the `TestResult` and `Report` domains + repositories, and `ReportService`, wired into `ProcessingJobService.advance()` so entering `RESULT_READY` creates the `TestResult` (fixed/deterministic placeholder values) and entering `REPORT_GENERATED` creates the `Report`. **[Agent: spring-boot-backend]**
+  - [x] Task: Implement `GET /samples/{id}/report` and `report.html` showing sample identifier, test name, result value, and generation date; add the "View Report" link on the details page once at `REPORT_GENERATED`; show "Report is not ready yet." otherwise. **[Agent: spring-boot-backend]**
+  - [x] Verify: Sign in via `curl`, create a sample, advance it through all 8 stages, open its report and confirm all four fields are present; create a second sample and confirm its report shows "Report is not ready yet." before advancing. Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
 
 - [ ] **Slice 5: Feature Testing & Regression**
 

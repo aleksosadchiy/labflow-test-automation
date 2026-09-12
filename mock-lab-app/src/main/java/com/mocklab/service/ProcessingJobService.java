@@ -26,11 +26,14 @@ public class ProcessingJobService {
 
     private final ProcessingJobRepository processingJobRepository;
     private final SampleRepository sampleRepository;
+    private final ReportService reportService;
 
     public ProcessingJobService(ProcessingJobRepository processingJobRepository,
-                                 SampleRepository sampleRepository) {
+                                 SampleRepository sampleRepository,
+                                 ReportService reportService) {
         this.processingJobRepository = processingJobRepository;
         this.sampleRepository = sampleRepository;
+        this.reportService = reportService;
     }
 
     /**
@@ -56,9 +59,11 @@ public class ProcessingJobService {
      *       job.</li>
      * </ul>
      *
-     * <p>Side effects on entering {@code RESULT_READY}/{@code
-     * REPORT_GENERATED} (creating a {@code TestResult}/{@code Report}) are
-     * out of scope here — a later slice wires them into this method.
+     * <p>Entering {@link SampleStatus#RESULT_READY} or {@link
+     * SampleStatus#REPORT_GENERATED} triggers a {@link ReportService} side
+     * effect (creating the {@code TestResult}/{@code Report} respectively)
+     * as part of this same synchronized call, so the side effect is
+     * atomic with the status change.
      */
     public synchronized Optional<ProcessingJob> advance(String sampleId) {
         Optional<ProcessingJob> existing = processingJobRepository.findBySampleId(sampleId);
@@ -93,6 +98,12 @@ public class ProcessingJobService {
                 sample.sampleType(),
                 next,
                 sample.createdAt())));
+
+        if (next == SampleStatus.RESULT_READY) {
+            reportService.createTestResult(sampleId);
+        } else if (next == SampleStatus.REPORT_GENERATED) {
+            reportService.createReport(sampleId);
+        }
 
         return Optional.of(updatedJob);
     }

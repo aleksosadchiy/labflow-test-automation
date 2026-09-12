@@ -29,6 +29,10 @@
     <form th:unless="${isFinalStage}" th:action="@{'/samples/' + ${sampleId} + '/advance'}" method="post" id="advance-form">
         <button type="submit" id="advance-button">Advance to Next Stage</button>
     </form>
+
+    <p th:if="${isFinalStage}">
+        <a th:href="@{'/samples/' + ${sampleId} + '/report'}" id="view-report-link">View Report</a>
+    </p>
 </div>
 
 </body>
