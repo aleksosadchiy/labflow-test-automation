@@ -8,6 +8,8 @@
 
 <div th:replace="~{fragments/layout :: header('Samples')}"></div>
 
+<a th:href="@{/samples/new}" id="create-sample-link">Create Sample</a>
+
 <p th:if="${samples.isEmpty()}" id="empty-state">No samples registered yet.</p>
 
 <table th:unless="${samples.isEmpty()}" id="sample-table">
