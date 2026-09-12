@@ -29,14 +29,14 @@ Each slice leaves `mock-lab-app` in a runnable, `mvn spring-boot:run`-able state
   - [x] Task: Update `GET /samples` / `sample-list.html` to render real registered samples (identifier, patient, status) instead of only the empty state. **[Agent: spring-boot-backend]**
   - [x] Verify: Sign in via `curl`, then: submit Create Sample with a seeded patient + valid type (confirm redirect and the new sample shows "Accessioned" in the list); submit with blank patient, blank type, an unknown patient ID, and an invalid sample type, confirming each exact message. Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
 
-- [ ] **Slice 3: View Sample Details & Advance the Workflow**
+- [x] **Slice 3: View Sample Details & Advance the Workflow**
 
   > A signed-in user opens a sample, sees its full stage progression, and can manually advance it stage by stage until the Advance button disappears at the final stage.
 
-  - [ ] Task: Implement the `SampleStatus` enum (8 stages, declaration order = workflow order) and `ProcessingJobService.advance(sampleId)` (moves to `values()[ordinal+1]`, syncs `Sample.status`, appends to `history`, no-ops at the final stage). **[Agent: spring-boot-backend]**
-  - [ ] Task: Implement `GET /samples/{id}` and `sample-details.html` showing the current status and all 8 stages with completed/current/remaining styling, and the "Sample not found." message for an unknown ID. **[Agent: spring-boot-backend]**
-  - [ ] Task: Implement `POST /samples/{id}/advance`, wired to `ProcessingJobService.advance()`; the Advance button is shown on the details page unless the sample is at `REPORT_GENERATED`. **[Agent: spring-boot-backend]**
-  - [ ] Verify: Sign in via `curl`, create a sample, open its details (confirm current stage + full 8-stage list), then `POST` the advance route repeatedly and confirm the status moves one stage at a time and the Advance action stops changing anything once `REPORT_GENERATED` is reached; open details for a made-up ID and confirm "Sample not found." Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
+  - [x] Task: Implement the `SampleStatus` enum (8 stages, declaration order = workflow order) and `ProcessingJobService.advance(sampleId)` (moves to `values()[ordinal+1]`, syncs `Sample.status`, appends to `history`, no-ops at the final stage). **[Agent: spring-boot-backend]**
+  - [x] Task: Implement `GET /samples/{id}` and `sample-details.html` showing the current status and all 8 stages with completed/current/remaining styling, and the "Sample not found." message for an unknown ID. **[Agent: spring-boot-backend]**
+  - [x] Task: Implement `POST /samples/{id}/advance`, wired to `ProcessingJobService.advance()`; the Advance button is shown on the details page unless the sample is at `REPORT_GENERATED`. **[Agent: spring-boot-backend]**
+  - [x] Verify: Sign in via `curl`, create a sample, open its details (confirm current stage + full 8-stage list), then `POST` the advance route repeatedly and confirm the status moves one stage at a time and the Advance action stops changing anything once `REPORT_GENERATED` is reached; open details for a made-up ID and confirm "Sample not found." Delete the cookie jar / any temp output. **[Agent: spring-boot-backend]**
 
 - [ ] **Slice 4: View Report**
 
