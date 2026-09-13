@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Report - Mock Lab</title>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: header('Report')}"></div>
+
+<p th:if="${notFound}" id="not-found-message">Sample not found.</p>
+
+<div th:unless="${notFound}">
+    <p th:if="${notReady}" id="not-ready-message">Report is not ready yet.</p>
+
+    <div th:unless="${notReady}" id="report-details">
+        <p>Sample ID: <span th:text="${sampleId}" id="report-sample-id"></span></p>
+        <p>Test Name: <span th:text="${testName}" id="report-test-name"></span></p>
+        <p>Result Value: <span th:text="${resultValue}" id="report-result-value"></span></p>
+        <p>Generated At: <span th:text="${generatedAt}" id="report-generated-at"></span></p>
+    </div>
+</div>
+
+</body>
+</html>

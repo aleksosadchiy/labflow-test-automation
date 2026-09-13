@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Sample Details - Mock Lab</title>
+    <style>
+        .stage-completed { color: green; }
+        .stage-current { font-weight: bold; }
+        .stage-remaining { color: gray; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: header('Sample Details')}"></div>
+
+<p th:if="${notFound}" id="not-found-message">Sample not found.</p>
+
+<div th:unless="${notFound}" id="sample-details">
+    <p>Sample ID: <span th:text="${sampleId}" id="sample-id"></span></p>
+    <p>Patient: <span th:text="${patientName}" id="patient-name"></span></p>
+    <p>Current Status: <span th:text="${currentStatus}" id="current-status"></span></p>
+
+    <ul id="stage-list">
+        <li th:each="stage : ${stages}"
+            th:class="'stage-' + ${stage.state}"
+            th:text="${stage.name}"></li>
+    </ul>
+
+    <form th:unless="${isFinalStage}" th:action="@{'/samples/' + ${sampleId} + '/advance'}" method="post" id="advance-form">
+        <button type="submit" id="advance-button">Advance to Next Stage</button>
+    </form>
+
+    <p th:if="${isFinalStage}">
+        <a th:href="@{'/samples/' + ${sampleId} + '/report'}" id="view-report-link">View Report</a>
+    </p>
+</div>
+
+</body>
+</html>

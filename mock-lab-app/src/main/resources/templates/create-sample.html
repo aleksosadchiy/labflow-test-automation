@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Create Sample - Mock Lab</title>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: header('Create Sample')}"></div>
+
+<p th:if="${errorMessage}" th:text="${errorMessage}" id="error-message"></p>
+
+<form th:action="@{/samples}" th:object="${createSampleForm}" method="post">
+    <div>
+        <label for="patientId">Patient</label>
+        <input type="text" id="patientId" th:field="*{patientId}"/>
+    </div>
+    <div>
+        <label for="sampleType">Sample Type</label>
+        <input type="text" id="sampleType" th:field="*{sampleType}"/>
+    </div>
+    <button type="submit">Create Sample</button>
+</form>
+
+</body>
+</html>

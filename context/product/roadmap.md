@@ -13,7 +13,7 @@ _Before automation can begin: stand up the system under test. This is a practice
   - [ ] **Runnable Locally & in CI:** Make sure the backend starts with a single command (or via Docker) on a developer machine and inside the GitHub Actions pipeline, so API tests always have a stable, repeatable target.
 
 - [ ] **UI Target Application**
-  - [ ] **Tiny Front-End Over the Mock Backend:** Build a minimal front-end (Login, Sample List, Create Sample, Sample Details, Report screens) that talks to the mock lab backend, so UI automation exercises the same simulated domain and workflow as the API tests.
+  - [x] **Tiny Front-End Over the Mock Backend:** Build a minimal front-end (Login, Sample List, Create Sample, Sample Details, Report screens) that talks to the mock lab backend, so UI automation exercises the same simulated domain and workflow as the API tests. _(See `context/spec/001-mock-lab-application/`. Underlying domain/service layer also built; the JSON REST API surface and CI-runnability remain open per the other Phase 0 sub-items.)_
   - [ ] **Stable Test Environment:** Confirm the front-end is reachable and stable enough for repeated automated runs (no CAPTCHAs, no rate-limiting, predictable test data/state), and runnable locally and in CI alongside the backend.
 
 ---
