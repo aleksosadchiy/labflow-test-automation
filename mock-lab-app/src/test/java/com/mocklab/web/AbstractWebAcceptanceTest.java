@@ -45,8 +45,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ExtendWith(SpringExtension.class)
 abstract class AbstractWebAcceptanceTest {
 
-    static final String SEEDED_USERNAME = "labtech";
-    static final String SEEDED_PASSWORD = "password123";
+    static final String SEEDED_USERNAME = "LabTech";
+    static final String SEEDED_PASSWORD = "I_Like_This_Lab";
     static final String KNOWN_PATIENT_ID = "PAT-1001";
     static final String KNOWN_PATIENT_NAME = "Alice Johnson";
 
@@ -54,7 +54,8 @@ abstract class AbstractWebAcceptanceTest {
     MockMvc mockMvc;
 
     /**
-     * Signs in with the seeded {@code labtech}/{@code password123} account
+     * Signs in with the seeded account ({@link #SEEDED_USERNAME}/
+     * {@link #SEEDED_PASSWORD}, configured via {@code application.yml})
      * via the real {@code POST /login} route and returns the resulting
      * {@link MockHttpSession} so callers can carry authentication across
      * subsequent {@code mockMvc.perform(...).session(session)} calls — the

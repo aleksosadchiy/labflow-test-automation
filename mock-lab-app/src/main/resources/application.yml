@@ -1,2 +1,7 @@
 server:
   port: 8080
+
+mock-lab:
+  seed-user:
+    username: ${MOCK_LAB_USERNAME:LabTech}
+    password: ${MOCK_LAB_PASSWORD:I_Like_This_Lab}
