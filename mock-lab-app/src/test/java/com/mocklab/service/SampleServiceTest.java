@@ -2,6 +2,7 @@ package com.mocklab.service;
 
 import com.mocklab.domain.Patient;
 import com.mocklab.domain.SampleStatus;
+import com.mocklab.exception.FailureKind;
 import com.mocklab.repository.OrderRepository;
 import com.mocklab.repository.PatientRepository;
 import com.mocklab.repository.ProcessingJobRepository;
@@ -74,35 +75,35 @@ class SampleServiceTest {
     void blankPatientIdIsRejected() {
         SampleCreationResult result = sampleService.createSample("", "BLOOD");
 
-        assertThat(result).isEqualTo(new SampleCreationResult.Failure("Patient is required."));
+        assertThat(result).isEqualTo(new SampleCreationResult.Failure(FailureKind.VALIDATION, "Patient is required."));
     }
 
     @Test
     void nullPatientIdIsRejected() {
         SampleCreationResult result = sampleService.createSample(null, "BLOOD");
 
-        assertThat(result).isEqualTo(new SampleCreationResult.Failure("Patient is required."));
+        assertThat(result).isEqualTo(new SampleCreationResult.Failure(FailureKind.VALIDATION, "Patient is required."));
     }
 
     @Test
     void blankSampleTypeIsRejected() {
         SampleCreationResult result = sampleService.createSample(KNOWN_PATIENT_ID, "  ");
 
-        assertThat(result).isEqualTo(new SampleCreationResult.Failure("Sample type is required."));
+        assertThat(result).isEqualTo(new SampleCreationResult.Failure(FailureKind.VALIDATION, "Sample type is required."));
     }
 
     @Test
     void unknownPatientIdIsRejected() {
         SampleCreationResult result = sampleService.createSample("PAT-9999", "BLOOD");
 
-        assertThat(result).isEqualTo(new SampleCreationResult.Failure("Patient not found."));
+        assertThat(result).isEqualTo(new SampleCreationResult.Failure(FailureKind.NOT_FOUND, "Patient not found."));
     }
 
     @Test
     void invalidSampleTypeIsRejected() {
         SampleCreationResult result = sampleService.createSample(KNOWN_PATIENT_ID, "PLASMA");
 
-        assertThat(result).isEqualTo(new SampleCreationResult.Failure("Invalid sample type."));
+        assertThat(result).isEqualTo(new SampleCreationResult.Failure(FailureKind.VALIDATION, "Invalid sample type."));
     }
 
     @Test
@@ -110,7 +111,7 @@ class SampleServiceTest {
         // both blank -> patient check must win (it's checked first)
         SampleCreationResult result = sampleService.createSample("", "");
 
-        assertThat(result).isEqualTo(new SampleCreationResult.Failure("Patient is required."));
+        assertThat(result).isEqualTo(new SampleCreationResult.Failure(FailureKind.VALIDATION, "Patient is required."));
     }
 
     @Test
@@ -118,6 +119,6 @@ class SampleServiceTest {
         // unknown patient AND invalid type -> patient-not-found must win (checked first)
         SampleCreationResult result = sampleService.createSample("PAT-9999", "PLASMA");
 
-        assertThat(result).isEqualTo(new SampleCreationResult.Failure("Patient not found."));
+        assertThat(result).isEqualTo(new SampleCreationResult.Failure(FailureKind.NOT_FOUND, "Patient not found."));
     }
 }

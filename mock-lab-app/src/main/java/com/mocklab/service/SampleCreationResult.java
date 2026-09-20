@@ -3,6 +3,7 @@ package com.mocklab.service;
 import com.mocklab.domain.Order;
 import com.mocklab.domain.ProcessingJob;
 import com.mocklab.domain.Sample;
+import com.mocklab.exception.FailureKind;
 
 /**
  * Outcome of {@link SampleService#createSample(String, String)}.
@@ -11,7 +12,10 @@ import com.mocklab.domain.Sample;
  * Create-Sample controller, a later task) is expected to always
  * pattern-match on it and treat "validation failed" as a normal, expected
  * outcome — not exceptional control flow — then re-render the form with
- * {@link Failure#message()} as the single relevant error message.
+ * {@link Failure#message()} as the single relevant error message. The
+ * {@link Failure#kind()} says which category the failure is (validation, not
+ * found, conflict); the screens ignore it, and the REST API uses it to pick
+ * the HTTP status.
  *
  * <pre>{@code
  * SampleCreationResult result = sampleService.createSample(patientId, sampleType);
@@ -40,7 +44,8 @@ public sealed interface SampleCreationResult {
      * documented on {@link SampleService#createSample(String, String)}.
      * {@code message} is the exact, user-facing string from the functional
      * spec (e.g. {@code "Patient is required."}) — safe to display verbatim.
+     * {@code kind} is the {@link FailureKind} category of that rule.
      */
-    record Failure(String message) implements SampleCreationResult {
+    record Failure(FailureKind kind, String message) implements SampleCreationResult {
     }
 }
