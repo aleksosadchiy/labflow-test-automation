@@ -42,7 +42,8 @@ public class SampleApiController {
 
     @PostMapping
     public ResponseEntity<SampleCreatedResponse> register(@RequestBody SampleRequest request) {
-        SampleCreationResult result = sampleService.createSample(request.patientId(), request.sampleType());
+        SampleCreationResult result = sampleService.createSample(
+                request.patientId(), request.sampleType(), request.orderId());
         if (result instanceof SampleCreationResult.Failure failure) {
             throw new LabRuleException(failure.kind(), failure.message());
         }
