@@ -74,6 +74,16 @@ public final class SampleApi {
                 "GET", SAMPLES + "/" + id + "/result", TestResult.class);
     }
 
+    /**
+     * {@code DELETE /api/samples/{id}}: a verb the lab does not support on samples, so it
+     * answers 405 with an {@code Allow} header. The success type is {@code Void} because
+     * there is no success body to read (it stays empty, and the error body is parsed as usual).
+     */
+    public LabResponse<Void> delete(String id) {
+        return LabResponse.from(specs.get().delete(SAMPLES + "/{id}", id),
+                "DELETE", SAMPLES + "/" + id, Void.class);
+    }
+
     /** {@code GET /api/samples/{id}/report}. */
     public LabResponse<Report> report(String id) {
         return LabResponse.from(specs.get().get(SAMPLES + "/{id}/report", id),

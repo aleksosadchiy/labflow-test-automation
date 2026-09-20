@@ -75,6 +75,24 @@ public final class SampleService {
         return api.register(body);
     }
 
+    /**
+     * The "refusal expected" twin of {@link #register(String, SampleType)} for content that is
+     * not a valid request: sends {@code rawBody} to {@code POST /api/samples} exactly as given
+     * (for example a truncated JSON object, or an empty string) and returns the lab's answer,
+     * never throwing for a refusal.
+     */
+    public LabResponse<Sample> attemptRegisterRaw(String rawBody) {
+        return api.register(rawBody);
+    }
+
+    /**
+     * Tries {@code DELETE /api/samples/{id}}, an action the lab does not support on samples,
+     * and returns the lab's answer (a 405 with an {@code Allow} header), never throwing.
+     */
+    public LabResponse<Void> attemptDelete(String sampleId) {
+        return api.delete(sampleId);
+    }
+
     /** Looks a sample up by the id the lab assigned; the lab must answer 200. */
     public Sample find(String id) {
         return api.find(id).bodyOrFail(200);

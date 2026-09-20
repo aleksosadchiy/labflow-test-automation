@@ -40,6 +40,15 @@ public final class PatientService {
         return api.register(body);
     }
 
+    /**
+     * The "refusal expected" twin of {@link #register} for content that is not a valid
+     * request: sends {@code rawBody} to {@code POST /api/patients} exactly as given (for
+     * example {@code not json at all}) and returns the lab's answer, never throwing.
+     */
+    public LabResponse<Patient> attemptRegisterRaw(String rawBody) {
+        return api.register(rawBody);
+    }
+
     /** Looks a patient up by the id the lab assigned; the lab must answer 200. */
     public Patient find(String id) {
         return api.find(id).bodyOrFail(200);
