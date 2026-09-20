@@ -1,5 +1,7 @@
 package com.labflow.client.http;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.labflow.common.model.ApiError;
 import io.restassured.http.Header;
@@ -27,13 +29,13 @@ public final class LabResponse<T> {
 
     private final String method;
     private final String path;
-    private final Class<T> bodyType;
+    private final JavaType bodyType;
     private final int statusCode;
     private final Map<String, List<String>> headers;
     private final T body;
     private final ApiError error;
 
-    private LabResponse(String method, String path, Class<T> bodyType, int statusCode,
+    private LabResponse(String method, String path, JavaType bodyType, int statusCode,
                         Map<String, List<String>> headers, T body, ApiError error) {
         this.method = method;
         this.path = path;
@@ -53,6 +55,18 @@ public final class LabResponse<T> {
      * @param bodyType what a success body should be read as
      */
     public static <T> LabResponse<T> from(Response response, String method, String path, Class<T> bodyType) {
+        return from(response, method, path, LabJson.mapper().constructType(bodyType));
+    }
+
+    /**
+     * Same as {@link #from(Response, String, String, Class)}, for a success body that is a
+     * generic type such as a bare JSON array: {@code new TypeReference<List<Sample>>() { }}.
+     */
+    public static <T> LabResponse<T> from(Response response, String method, String path, TypeReference<T> bodyType) {
+        return from(response, method, path, LabJson.mapper().constructType(bodyType));
+    }
+
+    private static <T> LabResponse<T> from(Response response, String method, String path, JavaType bodyType) {
         int status = response.getStatusCode();
         Map<String, List<String>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (Header header : response.getHeaders()) {
@@ -114,7 +128,14 @@ public final class LabResponse<T> {
         }
         return body().orElseThrow(() -> new UnexpectedResponseError(method + " " + path + " expected "
                 + expectedStatus + " and the lab answered " + statusCode
-                + ", but its body is missing or is not a " + bodyType.getSimpleName()));
+                + ", but its body is missing or is not a " + typeName()));
+    }
+
+    /** {@code Patient}, or {@code list of Sample} for a list, for messages. */
+    private String typeName() {
+        return bodyType.isCollectionLikeType()
+                ? "list of " + bodyType.getContentType().getRawClass().getSimpleName()
+                : bodyType.getRawClass().getSimpleName();
     }
 
     private String quotedMessage() {
@@ -122,7 +143,7 @@ public final class LabResponse<T> {
         return message.isEmpty() ? "" : " \"" + message + "\"";
     }
 
-    private static <T> T readOrNull(String raw, Class<T> type) {
+    private static <T> T readOrNull(String raw, JavaType type) {
         if (raw == null || raw.isBlank()) {
             return null;
         }

@@ -4,8 +4,12 @@ package com.labflow.client.http;
 // @spec: 003-test-automation-foundation
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.labflow.common.model.ApiError;
+import com.labflow.common.model.Order;
 import com.labflow.common.model.Patient;
+import com.labflow.common.model.Sample;
+import com.labflow.common.model.SampleSummary;
 import com.labflow.common.model.SampleType;
 import com.labflow.common.model.WorkflowStage;
 import org.junit.jupiter.api.DisplayName;
@@ -14,15 +18,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * Tests for {@link LabJson}, per functional-spec.md §2.4 (typed answers): the lab's JSON
  * turns into the shared records, timestamps become {@code Instant}, extra fields the lab
- * may add are ignored, and the wire enum names map to the enums. A small test-local
- * record stands in for the lab's larger answers that do not exist yet.
+ * may add are ignored, and the wire enum names map to the enums. It covers the lab's order
+ * and sample answers, including the nested {@code order} object the lab adds to a sample
+ * registration and the bare JSON array of samples.
  *
  * @spec: 003-test-automation-foundation
  */
@@ -125,6 +132,101 @@ class LabJsonMappingTest {
                 "{\"status\":\"ACCESSIONED\",\"sampleType\":\"PLASMA\"}", Wire.class))
                 .isInstanceOf(JsonProcessingException.class)
                 .hasMessageContaining("PLASMA");
+    }
+
+    // ---- the lab's order and sample answers ----
+
+    private static final String SAMPLE_REGISTRATION_ANSWER = "{\"id\":\"s-1\",\"patientId\":\"p-1\","
+            + "\"orderId\":\"o-1\",\"sampleType\":\"BLOOD\",\"status\":\"ACCESSIONED\","
+            + "\"createdAt\":\"2026-01-05T10:15:30.123Z\","
+            + "\"order\":{\"id\":\"o-1\",\"patientId\":\"p-1\",\"createdAt\":\"2026-01-05T10:15:00Z\"}}";
+
+    @Test
+    // @regression
+    @DisplayName("The lab's sample-registration answer, with its nested order object, maps to a Sample")
+    void sampleRegistrationAnswerWithNestedOrderMapsToASample() throws Exception {
+        Sample sample = LabJson.mapper().readValue(SAMPLE_REGISTRATION_ANSWER, Sample.class);
+
+        assertThat(sample).isEqualTo(new Sample("s-1", "p-1", "o-1", SampleType.BLOOD,
+                WorkflowStage.ACCESSIONED, Instant.parse("2026-01-05T10:15:30.123Z")));
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A sample's wire names (TISSUE, READY_FOR_PROCESSING) map to the enums")
+    void sampleWireNamesMapToTheEnums() throws Exception {
+        Sample sample = LabJson.mapper().readValue("{\"id\":\"s-2\",\"patientId\":\"p-1\",\"orderId\":\"o-1\","
+                + "\"sampleType\":\"TISSUE\",\"status\":\"READY_FOR_PROCESSING\","
+                + "\"createdAt\":\"2026-01-05T10:15:30Z\"}", Sample.class);
+
+        assertThat(sample.sampleType()).isEqualTo(SampleType.TISSUE);
+        assertThat(sample.status()).isEqualTo(WorkflowStage.READY_FOR_PROCESSING);
+    }
+
+    @Test
+    // @regression
+    @DisplayName("An order with a samples list maps to an Order whose samples are SampleSummary records")
+    void orderWithSamplesMapsToAnOrder() throws Exception {
+        String json = "{\"id\":\"o-1\",\"patientId\":\"p-1\",\"createdAt\":\"2026-01-05T10:15:00Z\","
+                + "\"samples\":[{\"id\":\"s-1\",\"sampleType\":\"BLOOD\",\"status\":\"ACCESSIONED\"},"
+                + "{\"id\":\"s-2\",\"sampleType\":\"SWAB\",\"status\":\"PROCESSING\"}]}";
+
+        Order order = LabJson.mapper().readValue(json, Order.class);
+
+        assertThat(order.id()).isEqualTo("o-1");
+        assertThat(order.patientId()).isEqualTo("p-1");
+        assertThat(order.createdAt()).isEqualTo(Instant.parse("2026-01-05T10:15:00Z"));
+        assertThat(order.samples()).containsExactly(
+                new SampleSummary("s-1", SampleType.BLOOD, WorkflowStage.ACCESSIONED),
+                new SampleSummary("s-2", SampleType.SWAB, WorkflowStage.PROCESSING));
+    }
+
+    @Test
+    // @regression
+    @DisplayName("An order answer without a samples list, or with a null one, has an empty samples list")
+    void orderWithoutSamplesHasAnEmptyList() throws Exception {
+        Order absent = LabJson.mapper().readValue(
+                "{\"id\":\"o-1\",\"patientId\":\"p-1\",\"createdAt\":\"2026-01-05T10:15:00Z\"}", Order.class);
+        Order explicitNull = LabJson.mapper().readValue(
+                "{\"id\":\"o-1\",\"patientId\":\"p-1\",\"createdAt\":\"2026-01-05T10:15:00Z\",\"samples\":null}",
+                Order.class);
+
+        assertThat(absent.samples()).isNotNull().isEmpty();
+        assertThat(explicitNull.samples()).isNotNull().isEmpty();
+    }
+
+    @Test
+    // @regression
+    @DisplayName("An order's samples list cannot be modified")
+    void orderSamplesAreImmutable() {
+        Order order = new Order("o-1", "p-1", Instant.parse("2026-01-05T10:15:00Z"), null);
+
+        assertThatThrownBy(() -> order.samples().add(new SampleSummary("s-1", SampleType.BLOOD, WorkflowStage.ACCESSIONED)))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A bare JSON array of samples maps to a List of Sample")
+    void bareArrayOfSamplesMapsToAList() throws Exception {
+        String json = "[" + SAMPLE_REGISTRATION_ANSWER + ",{\"id\":\"s-2\",\"patientId\":\"p-2\",\"orderId\":\"o-2\","
+                + "\"sampleType\":\"URINE\",\"status\":\"SEQUENCING\",\"createdAt\":\"2026-01-05T11:00:00Z\"}]";
+
+        List<Sample> samples = LabJson.mapper().readValue(json, new TypeReference<List<Sample>>() { });
+
+        assertThat(samples).extracting(Sample::id, Sample::patientId, Sample::sampleType, Sample::status)
+                .containsExactly(
+                        tuple("s-1", "p-1", SampleType.BLOOD, WorkflowStage.ACCESSIONED),
+                        tuple("s-2", "p-2", SampleType.URINE, WorkflowStage.SEQUENCING));
+    }
+
+    @Test
+    // @regression
+    @DisplayName("An empty JSON array maps to an empty List of Sample")
+    void emptyArrayMapsToAnEmptyList() throws Exception {
+        List<Sample> samples = LabJson.mapper().readValue("[]", new TypeReference<List<Sample>>() { });
+
+        assertThat(samples).isEmpty();
     }
 
     // ---- the lab's error body ----

@@ -1,8 +1,12 @@
 package com.labflow.client;
 
+import com.labflow.client.api.OrderApi;
 import com.labflow.client.api.PatientApi;
+import com.labflow.client.api.SampleApi;
 import com.labflow.client.http.LabRequestSpecs;
+import com.labflow.client.service.OrderService;
 import com.labflow.client.service.PatientService;
+import com.labflow.client.service.SampleService;
 import com.labflow.common.config.ApiKey;
 import com.labflow.common.config.LabConfig;
 
@@ -19,11 +23,15 @@ public final class LabClient {
     /** Null means "send no Authorization header". */
     private final ApiKey apiKey;
     private final PatientService patients;
+    private final OrderService orders;
+    private final SampleService samples;
 
     private LabClient(String baseUrl, ApiKey apiKey) {
         this.baseUrl = baseUrl;
         this.apiKey = apiKey;
         this.patients = new PatientService(new PatientApi(() -> LabRequestSpecs.create(baseUrl, apiKey)));
+        this.orders = new OrderService(new OrderApi(() -> LabRequestSpecs.create(baseUrl, apiKey)));
+        this.samples = new SampleService(new SampleApi(() -> LabRequestSpecs.create(baseUrl, apiKey)));
     }
 
     /** A client for the lab and access key in the configuration. */
@@ -33,6 +41,14 @@ public final class LabClient {
 
     public PatientService patients() {
         return patients;
+    }
+
+    public OrderService orders() {
+        return orders;
+    }
+
+    public SampleService samples() {
+        return samples;
     }
 
     /** A new client for the same lab that signs in with the given key instead. */
