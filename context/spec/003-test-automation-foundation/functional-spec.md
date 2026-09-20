@@ -30,8 +30,8 @@ Success is measured by: the engineer can run the whole framework with one docume
 - **As an** engineer, **I want to** run all the checks with one documented command from the top of the project, **so that** I get a verdict without learning how the project is wired.
   - **Acceptance Criteria:**
     - [ ] When the engineer runs the single documented command from the project's top-level folder while the lab is running, then every check runs and the overall result (passed or failed) is shown at the end.
-    - [ ] When the engineer runs the documented command that runs only the lab-workflow checks, then only those checks run and the rest of the project is not exercised.
-    - [ ] When someone clones the repository onto a machine that has only the required tools installed and starts the lab as documented, then the single documented command runs to completion with every check passing and no other manual steps.
+    - [ ] When the engineer runs the documented command that runs only the lab-workflow checks, then only the checks that use the lab run, together with the framework's own quick self-checks (which need no lab), and nothing else in the project is exercised.
+    - [ ] When someone clones the repository onto a machine that has only the documented required tools (a Java runtime, plus internet access the first time) and starts the lab as documented, then the single documented command runs to completion with every check passing and no other manual steps.
     - [ ] When the engineer runs the checks while the lab is running, then the lab itself is not built, started or stopped by the checks.
 
 ### 2.2. A Clearly Organised Project
@@ -49,9 +49,9 @@ Success is measured by: the engineer can run the whole framework with one docume
   - **Acceptance Criteria:**
     - [ ] When the checks are started while the lab is not running or not yet ready, then they stop immediately without running any workflow check and show a message that names the address they tried and tells the engineer how to start the lab.
     - [ ] When the checks are started and the lab does not accept the configured access key, then they stop immediately without running any workflow check and show a message saying the access key was rejected.
-    - [ ] When the engineer supplies a different lab address or access key from outside the project (without editing any project file), then the checks use those values.
+    - [ ] When the engineer supplies a different lab address, or a different access key, from outside the project (without editing any project file), then the checks use those values; the access key is accepted only through the environment, never on the command line.
     - [ ] When the engineer supplies neither, then the checks use the lab's standard local address and its documented local access key.
-    - [ ] When the checks run and report their results, then the access key value never appears anywhere in what is shown.
+    - [ ] When the checks run and report their results, then the access key value never appears anywhere in what is shown or in any report file the checks write.
 
 ### 2.4. The Lab's Concepts and Stages, Ready to Use
 
@@ -76,10 +76,11 @@ Success is measured by: the engineer can run the whole framework with one docume
 ### 2.6. Rejection Checks (What the Lab Must Refuse)
 
 - **As an** engineer, **I want** checks that prove the lab refuses bad requests correctly, **so that** I trust its safeguards as much as its normal behaviour.
-  - Every rejection check verifies more than "it was refused": it verifies the kind of rejection, the exact message, that nothing was created or changed, and the supporting detail the lab sends back where one applies.
+  - Every rejection check verifies more than "it was refused": it verifies the kind of rejection, the exact message, that nothing was created or changed (where the lab lets a check observe this — for a refused patient or order, that no new identifier was issued), and the supporting detail the lab sends back where one applies.
   - **Acceptance Criteria:**
     - [ ] When a check registers a patient without a name, a sample without a type, or an order without a patient, then the lab refuses with the matching "… is required." message and nothing is created.
-    - [ ] When a check names a patient that does not exist (including an empty patient) for an order or a sample, then the lab refuses with "Patient not found." (or "Patient is required." when none is given) and nothing is created.
+    - [ ] When a check names a patient that does not exist for an order or a sample, then the lab refuses with "Patient not found." and nothing is created.
+    - [ ] When a check places an order or registers a sample without naming any patient, then the lab refuses with "Patient is required." and nothing is created.
     - [ ] When a check registers a second sample of the same type under the same order, then the lab refuses with "A sample of this type already exists for this order." and the order still holds only the first sample.
     - [ ] When a check registers a sample with a type the lab does not support, then the lab refuses with "Invalid sample type." and nothing is created.
     - [ ] When a check looks up, moves, or asks for the progress, result or report of a sample that does not exist, then the lab answers "Sample not found." each time.
@@ -114,7 +115,7 @@ Success is measured by: the engineer can run the whole framework with one docume
 ### Out-of-Scope
 
 - Screen-based checks and page objects, running checks in parallel, reusable test-data builders (each check here simply creates its own uniquely named records), labels for running subsets of checks, and the fuller external configuration (browser, environment) — these belong to **Phase 2** of the roadmap and get their own specifications.
-- The automated build pipeline, published test reports, structured logging, the project README, and the optional Cucumber demonstration — **Phase 3** of the roadmap.
+- The automated build pipeline, published test reports, structured logging, the full project README, and the optional Cucumber demonstration — **Phase 3** of the roadmap. (Only the short "how to run the checks" part of the existing README is updated here, because the documented commands this specification requires must live somewhere.)
 - Starting or stopping the lab automatically as part of the checks (the engineer starts it, as documented for the lab).
 - Any change to the lab itself.
 - Performance, load or security testing, and reusing the checks against anything other than the Mock Lab.
@@ -126,4 +127,4 @@ Success is measured by: the engineer can run the whole framework with one docume
 
 _Dated amendments made after the spec was first written — typically by `/awos:spec` in Update Mode when a bug fix changed documented behavior. Each entry records the date, the source reference (bug id or fix description), and what behavior changed and why. Leave empty until the first amendment._
 
-- [YYYY-MM-DD] — [source reference] — [what behavior changed and why]
+- [2026-09-20] — /awos:tech review of this spec — Reworded the "run only the workflow checks" criterion (the framework's own quick self-checks also run); defined "required tools"; the access key is accepted only through the environment and must not appear in report files either (a command-line key leaks into stored reports); split the "unknown patient" / "no patient" refusal criterion, which contradicted itself; clarified what "nothing is created" means for refused patients and orders; noted the minimal README update.
