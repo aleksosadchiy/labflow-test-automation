@@ -7,3 +7,12 @@ mock-lab:
   seed-user:
     username: ${MOCK_LAB_USERNAME:LabTech}
     password: ${MOCK_LAB_PASSWORD:I_Like_This_Lab}
+
+# Strict JSON parsing for the API request bodies: a repeated key, or anything after the
+# closing brace, is an unreadable body (400 "Malformed request body."), not a lenient success.
+spring:
+  jackson:
+    parser:
+      strict-duplicate-detection: true
+    deserialization:
+      fail-on-trailing-tokens: true
