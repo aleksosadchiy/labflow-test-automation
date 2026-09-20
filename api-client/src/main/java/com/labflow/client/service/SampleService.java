@@ -1,6 +1,7 @@
 package com.labflow.client.service;
 
 import com.labflow.client.api.SampleApi;
+import com.labflow.client.http.LabResponse;
 import com.labflow.common.model.Progress;
 import com.labflow.common.model.Report;
 import com.labflow.common.model.Sample;
@@ -43,6 +44,35 @@ public final class SampleService {
             body.put("orderId", orderId);
         }
         return api.register(body).bodyOrFail(201);
+    }
+
+    /**
+     * The "refusal expected" twin of {@link #register(String, SampleType)}: takes the sample
+     * type as raw text (for example {@code "PLASMA"}, which the lab does not know), sends
+     * whatever it is given and returns the lab's answer, whatever it is, without ever throwing
+     * for a refusal. Any argument that is {@code null} is left out of the request.
+     */
+    public LabResponse<Sample> attemptRegister(String patientId, String rawType) {
+        return attemptRegister(patientId, rawType, null);
+    }
+
+    /**
+     * The "refusal expected" twin of {@link #register(String, SampleType, String)}; see
+     * {@link #attemptRegister(String, String)}. The raw type is sent verbatim, and a
+     * {@code null} patient id, type or order id is left out of the request.
+     */
+    public LabResponse<Sample> attemptRegister(String patientId, String rawType, String orderId) {
+        Map<String, String> body = new LinkedHashMap<>();
+        if (patientId != null) {
+            body.put("patientId", patientId);
+        }
+        if (rawType != null) {
+            body.put("sampleType", rawType);
+        }
+        if (orderId != null) {
+            body.put("orderId", orderId);
+        }
+        return api.register(body);
     }
 
     /** Looks a sample up by the id the lab assigned; the lab must answer 200. */

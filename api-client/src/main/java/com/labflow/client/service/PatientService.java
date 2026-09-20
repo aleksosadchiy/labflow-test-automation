@@ -1,8 +1,10 @@
 package com.labflow.client.service;
 
 import com.labflow.client.api.PatientApi;
+import com.labflow.client.http.LabResponse;
 import com.labflow.common.model.Patient;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -22,6 +24,20 @@ public final class PatientService {
     /** Registers a patient; the lab must answer 201. */
     public Patient register(String name) {
         return api.register(Map.of("name", name)).bodyOrFail(201);
+    }
+
+    /**
+     * The "refusal expected" twin of {@link #register}: sends whatever it is given and returns
+     * the lab's answer, whatever it is, without ever throwing for a refusal. A {@code null}
+     * name is left out of the request (the body is {@code {}}); a blank or any other string
+     * is sent exactly as given.
+     */
+    public LabResponse<Patient> attemptRegister(String name) {
+        Map<String, String> body = new LinkedHashMap<>();
+        if (name != null) {
+            body.put("name", name);
+        }
+        return api.register(body);
     }
 
     /** Looks a patient up by the id the lab assigned; the lab must answer 200. */
