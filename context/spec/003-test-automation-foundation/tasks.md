@@ -55,13 +55,13 @@ Each slice leaves the project buildable and runnable with `./mvnw` from the repo
   - [x] Task: In `happy/PatientOrderSampleTest` add `placedOrderCanBeLookedUp`, `registeredSampleCanBeLookedUp` (under that order, lab-assigned id, chosen type, same patient) and `newSampleIsAccessioned`, each creating its own uniquely named data. **[Agent: testing-expert]**
   - [x] Verify: With the lab on 18080: `./mvnw clean test -DbaseUrl=http://localhost:18080` green, per-class counts quoted; run the same command twice in a row against the same lab (both green); confirm the order returned by the lab lists the sample the check registered. Stop the lab, delete temp output. **[Agent: testing-expert]**
 
-- [ ] **Slice 6: Move a Sample Through Every Stage to Its Report (Happy Path Complete)**
+- [x] **Slice 6: Move a Sample Through Every Stage to Its Report (Happy Path Complete)**
 
   > A check drives a sample through all seven remaining stages, retrieves its result and report, and one check follows the whole journey. (Functional spec §2.5 stages, result, report, whole journey)
 
-  - [ ] Task: In `common` add `Progress`, `StageEntry`, `TestResult` and `Report` records; extend `SampleService` with `moveTo(sampleId, stage)`, `walkTo(sampleId, stage)` (one request per stage using `WorkflowStage.next()`), `progress(id)`, `result(id)` and `report(id)`. **[Agent: general-purpose]**
-  - [ ] Task: Add `happy/SampleProgressionTest` (`movesThroughAllSevenStagesOneAtATime`, `resultAvailableAtResultReady`, `reportAvailableAtReportGenerated` with sample id, test name, result value and generation date) and `happy/FullJourneyTest#wholeJourneyFromPatientToReport` (patient, order, sample, all stages, result, report; the report belongs to the sample registered). **[Agent: testing-expert]**
-  - [ ] Verify: With the lab on 18080: full run green (quote counts); the progress read back lists all eight stages in order; run the whole suite twice in a row (both green); run one check alone (`-Dtest=FullJourneyTest#wholeJourneyFromPatientToReport`). Stop the lab, delete temp output. **[Agent: testing-expert]**
+  - [x] Task: In `common` add `Progress`, `StageEntry`, `TestResult` and `Report` records; extend `SampleService` with `moveTo(sampleId, stage)`, `walkTo(sampleId, stage)` (one request per stage using `WorkflowStage.next()`), `progress(id)`, `result(id)` and `report(id)`. **[Agent: general-purpose]**
+  - [x] Task: Add `happy/SampleProgressionTest` (`movesThroughAllSevenStagesOneAtATime`, `resultAvailableAtResultReady`, `reportAvailableAtReportGenerated` with sample id, test name, result value and generation date) and `happy/FullJourneyTest#wholeJourneyFromPatientToReport` (patient, order, sample, all stages, result, report; the report belongs to the sample registered). **[Agent: testing-expert]**
+  - [x] Verify: With the lab on 18080: full run green (quote counts); the progress read back lists all eight stages in order; run the whole suite twice in a row (both green); run one check alone (`-Dtest=FullJourneyTest#wholeJourneyFromPatientToReport`). Stop the lab, delete temp output. **[Agent: testing-expert]**
 
 - [ ] **Slice 7: Refusal Checks That Read as Business Statements (Input Validation)**
 

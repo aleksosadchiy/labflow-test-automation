@@ -1,8 +1,12 @@
 package com.labflow.client.service;
 
 import com.labflow.client.api.SampleApi;
+import com.labflow.common.model.Progress;
+import com.labflow.common.model.Report;
 import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleType;
+import com.labflow.common.model.TestResult;
+import com.labflow.common.model.WorkflowStage;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,5 +60,53 @@ public final class SampleService {
         return api.list().bodyOrFail(200).stream()
                 .filter(sample -> patientId.equals(sample.patientId()))
                 .toList();
+    }
+
+    /**
+     * Moves a sample to the given stage with one {@code PUT /api/samples/{id}/status}, which
+     * carries the stage's constant name; the lab must answer 200 with the sample. The lab
+     * only accepts the <em>next</em> stage, so this is the verb for a single step.
+     */
+    public Sample moveTo(String sampleId, WorkflowStage stage) {
+        return api.moveTo(sampleId, Map.of("status", stage.name())).bodyOrFail(200);
+    }
+
+    /**
+     * Walks a sample forward, one stage at a time, until it reaches {@code target}: it looks
+     * the sample's current stage up, then sends one {@link #moveTo} per stage, following
+     * {@link WorkflowStage#next()}. It returns the sample as the lab answered the last step.
+     * If the lab refuses a step, the {@link com.labflow.client.http.UnexpectedResponseError}
+     * of that step propagates and the sample stays where it got to.
+     *
+     * @throws IllegalArgumentException if {@code target} is not strictly after the sample's
+     *                                  current stage; no move is sent in that case
+     */
+    public Sample walkTo(String sampleId, WorkflowStage target) {
+        Sample sample = find(sampleId);
+        WorkflowStage stage = sample.status();
+        if (target.compareTo(stage) <= 0) {
+            throw new IllegalArgumentException("Cannot walk sample " + sampleId + " to " + target
+                    + ": it is already at " + stage + ", and a target must come after the current stage");
+        }
+        while (stage != target) {
+            stage = stage.next().orElseThrow();
+            sample = moveTo(sampleId, stage);
+        }
+        return sample;
+    }
+
+    /** The stages a sample has reached so far; the lab must answer 200. */
+    public Progress progress(String id) {
+        return api.progress(id).bodyOrFail(200);
+    }
+
+    /** A sample's test result (available from Result Ready on); the lab must answer 200. */
+    public TestResult result(String id) {
+        return api.result(id).bodyOrFail(200);
+    }
+
+    /** A sample's report (available at Report Generated); the lab must answer 200. */
+    public Report report(String id) {
+        return api.report(id).bodyOrFail(200);
     }
 }

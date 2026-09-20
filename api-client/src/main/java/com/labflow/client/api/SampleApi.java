@@ -2,7 +2,10 @@ package com.labflow.client.api;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.labflow.client.http.LabResponse;
+import com.labflow.common.model.Progress;
+import com.labflow.common.model.Report;
 import com.labflow.common.model.Sample;
+import com.labflow.common.model.TestResult;
 import io.restassured.specification.RequestSpecification;
 
 import java.util.List;
@@ -46,5 +49,34 @@ public final class SampleApi {
     /** {@code GET /api/samples}: every sample in the lab, as a bare JSON array. */
     public LabResponse<List<Sample>> list() {
         return LabResponse.from(specs.get().get(SAMPLES), "GET", SAMPLES, new TypeReference<List<Sample>>() { });
+    }
+
+    /**
+     * {@code PUT /api/samples/{id}/status}: asks the lab to move the sample to another stage.
+     *
+     * @param body what to send as the JSON body: a record, a {@code Map}, or a raw
+     *             {@code String} (sent as-is, for deliberately malformed JSON)
+     */
+    public LabResponse<Sample> moveTo(String id, Object body) {
+        return LabResponse.from(specs.get().body(body).put(SAMPLES + "/{id}/status", id),
+                "PUT", SAMPLES + "/" + id + "/status", Sample.class);
+    }
+
+    /** {@code GET /api/samples/{id}/progress}. */
+    public LabResponse<Progress> progress(String id) {
+        return LabResponse.from(specs.get().get(SAMPLES + "/{id}/progress", id),
+                "GET", SAMPLES + "/" + id + "/progress", Progress.class);
+    }
+
+    /** {@code GET /api/samples/{id}/result}. */
+    public LabResponse<TestResult> result(String id) {
+        return LabResponse.from(specs.get().get(SAMPLES + "/{id}/result", id),
+                "GET", SAMPLES + "/" + id + "/result", TestResult.class);
+    }
+
+    /** {@code GET /api/samples/{id}/report}. */
+    public LabResponse<Report> report(String id) {
+        return LabResponse.from(specs.get().get(SAMPLES + "/{id}/report", id),
+                "GET", SAMPLES + "/" + id + "/report", Report.class);
     }
 }

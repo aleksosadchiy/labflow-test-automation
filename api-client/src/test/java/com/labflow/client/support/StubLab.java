@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
 /**
  * A tiny fake lab for the framework's own self-tests, built on the JDK's HTTP server so no
@@ -52,6 +53,7 @@ public final class StubLab implements AutoCloseable {
 
     private final HttpServer server;
     private final Map<String, Answer> answers = new ConcurrentHashMap<>();
+    private final Map<String, Function<ReceivedRequest, Answer>> responders = new ConcurrentHashMap<>();
     private final List<ReceivedRequest> requests = new CopyOnWriteArrayList<>();
 
     private StubLab(HttpServer server) {
@@ -87,6 +89,16 @@ public final class StubLab implements AutoCloseable {
         return this;
     }
 
+    /**
+     * Answers {@code METHOD path} by asking {@code responder} for each request, so the answer
+     * can depend on the request and on state the test keeps (for example a sample that moves
+     * on one stage per {@code PUT}). It takes precedence over a fixed {@link #answer}.
+     */
+    public StubLab respond(String method, String path, Function<ReceivedRequest, Answer> responder) {
+        responders.put(key(method, path), responder);
+        return this;
+    }
+
     /** Every request received so far, oldest first. */
     public List<ReceivedRequest> requests() {
         return List.copyOf(requests);
@@ -114,9 +126,13 @@ public final class StubLab implements AutoCloseable {
             Map<String, List<String>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
             exchange.getRequestHeaders().forEach((name, values) -> headers.put(name, List.copyOf(values)));
             String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            requests.add(new ReceivedRequest(method, path, headers, body));
+            ReceivedRequest received = new ReceivedRequest(method, path, headers, body);
+            requests.add(received);
 
-            Answer answer = answers.getOrDefault(key(method, path), notFound(path));
+            Function<ReceivedRequest, Answer> responder = responders.get(key(method, path));
+            Answer answer = responder != null
+                    ? responder.apply(received)
+                    : answers.getOrDefault(key(method, path), notFound(path));
             answer.headers().forEach((name, value) -> exchange.getResponseHeaders().add(name, value));
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             byte[] payload = answer.body().getBytes(StandardCharsets.UTF_8);

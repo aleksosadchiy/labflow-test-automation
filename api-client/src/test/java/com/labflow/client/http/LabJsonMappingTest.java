@@ -8,9 +8,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.labflow.common.model.ApiError;
 import com.labflow.common.model.Order;
 import com.labflow.common.model.Patient;
+import com.labflow.common.model.Progress;
+import com.labflow.common.model.Report;
 import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleSummary;
 import com.labflow.common.model.SampleType;
+import com.labflow.common.model.StageEntry;
+import com.labflow.common.model.TestResult;
 import com.labflow.common.model.WorkflowStage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +22,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -227,6 +232,84 @@ class LabJsonMappingTest {
         List<Sample> samples = LabJson.mapper().readValue("[]", new TypeReference<List<Sample>>() { });
 
         assertThat(samples).isEmpty();
+    }
+
+    // ---- progress, result and report ----
+
+    @Test
+    // @regression
+    @DisplayName("A progress answer maps to a Progress whose stage list has typed stages and Instants, current stage included")
+    void progressAnswerMapsToProgress() throws Exception {
+        String json = "{\"sampleId\":\"s-1\",\"currentStatus\":\"READY_FOR_PROCESSING\","
+                + "\"stages\":[{\"status\":\"ACCESSIONED\",\"reachedAt\":\"2026-01-05T10:15:30Z\"},"
+                + "{\"status\":\"READY_FOR_PROCESSING\",\"reachedAt\":\"2026-01-05T10:16:00.500Z\"}]}";
+
+        Progress progress = LabJson.mapper().readValue(json, Progress.class);
+
+        assertThat(progress.sampleId()).isEqualTo("s-1");
+        assertThat(progress.currentStatus()).isEqualTo(WorkflowStage.READY_FOR_PROCESSING);
+        assertThat(progress.stages()).containsExactly(
+                new StageEntry(WorkflowStage.ACCESSIONED, Instant.parse("2026-01-05T10:15:30Z")),
+                new StageEntry(WorkflowStage.READY_FOR_PROCESSING, Instant.parse("2026-01-05T10:16:00.500Z")));
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A progress answer without a stages list, or with a null one, has an empty stages list")
+    void progressWithoutStagesHasAnEmptyList() throws Exception {
+        Progress absent = LabJson.mapper().readValue(
+                "{\"sampleId\":\"s-1\",\"currentStatus\":\"ACCESSIONED\"}", Progress.class);
+        Progress explicitNull = LabJson.mapper().readValue(
+                "{\"sampleId\":\"s-1\",\"currentStatus\":\"ACCESSIONED\",\"stages\":null}", Progress.class);
+
+        assertThat(absent.stages()).isNotNull().isEmpty();
+        assertThat(explicitNull.stages()).isNotNull().isEmpty();
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A progress's stages list cannot be modified, and does not follow later changes to the list it was built from")
+    void progressStagesAreImmutable() {
+        ArrayList<StageEntry> source = new ArrayList<>();
+        source.add(new StageEntry(WorkflowStage.ACCESSIONED, Instant.parse("2026-01-05T10:15:30Z")));
+        Progress progress = new Progress("s-1", WorkflowStage.ACCESSIONED, source);
+        source.clear();
+
+        assertThat(progress.stages()).hasSize(1);
+        assertThatThrownBy(() -> progress.stages().add(new StageEntry(WorkflowStage.PROCESSING, Instant.EPOCH)))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A result answer maps to a TestResult, and fields the lab adds are ignored")
+    void resultAnswerMapsToATestResult() throws Exception {
+        TestResult result = LabJson.mapper().readValue(
+                "{\"sampleId\":\"s-1\",\"testName\":\"Hemoglobin\",\"resultValue\":\"13.5 g/dL\",\"extra\":{\"a\":1}}",
+                TestResult.class);
+
+        assertThat(result).isEqualTo(new TestResult("s-1", "Hemoglobin", "13.5 g/dL"));
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A report answer maps to a Report with generatedAt as an Instant, and fields the lab adds are ignored")
+    void reportAnswerMapsToAReport() throws Exception {
+        Report report = LabJson.mapper().readValue("{\"sampleId\":\"s-1\",\"testName\":\"Hemoglobin\","
+                + "\"resultValue\":\"13.5 g/dL\",\"generatedAt\":\"2026-01-05T11:00:00.750Z\",\"extra\":42}", Report.class);
+
+        assertThat(report).isEqualTo(new Report("s-1", "Hemoglobin", "13.5 g/dL",
+                Instant.parse("2026-01-05T11:00:00.750Z")));
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A progress answer with a stage name the framework does not know fails loudly")
+    void progressWithAnUnknownStageFailsLoudly() {
+        assertThatThrownBy(() -> LabJson.mapper().readValue(
+                "{\"sampleId\":\"s-1\",\"currentStatus\":\"TELEPORTED\",\"stages\":[]}", Progress.class))
+                .isInstanceOf(JsonProcessingException.class)
+                .hasMessageContaining("TELEPORTED");
     }
 
     // ---- the lab's error body ----
