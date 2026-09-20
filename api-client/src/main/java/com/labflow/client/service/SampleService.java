@@ -81,6 +81,14 @@ public final class SampleService {
     }
 
     /**
+     * The "refusal expected" twin of {@link #find(String)}: returns the lab's answer to
+     * {@code GET /api/samples/{id}}, whatever it is, without ever throwing for a refusal.
+     */
+    public LabResponse<Sample> attemptFind(String sampleId) {
+        return api.find(sampleId);
+    }
+
+    /**
      * The samples that belong to one patient. The lab only lists <em>all</em> samples
      * ({@code GET /api/samples}, which must answer 200), so this filters that list here.
      * Other checks may be running against the same lab, so a count or list of every sample
@@ -99,6 +107,28 @@ public final class SampleService {
      */
     public Sample moveTo(String sampleId, WorkflowStage stage) {
         return api.moveTo(sampleId, Map.of("status", stage.name())).bodyOrFail(200);
+    }
+
+    /**
+     * The "refusal expected" twin of {@link #moveTo}: takes the status as raw text (a stage
+     * name for a wrong move, or garbage), sends it verbatim in one
+     * {@code PUT /api/samples/{id}/status} and returns the lab's answer, whatever it is,
+     * without ever throwing for a refusal. A {@code null} status is left out of the request.
+     */
+    public LabResponse<Sample> attemptMoveTo(String sampleId, String rawStatus) {
+        Map<String, String> body = new LinkedHashMap<>();
+        if (rawStatus != null) {
+            body.put("status", rawStatus);
+        }
+        return api.moveTo(sampleId, body);
+    }
+
+    /**
+     * Same as {@link #attemptMoveTo(String, String)}, for a stage: sends the stage's constant
+     * name, so a check can say "try to move to SEQUENCING" without touching strings.
+     */
+    public LabResponse<Sample> attemptMoveTo(String sampleId, WorkflowStage stage) {
+        return attemptMoveTo(sampleId, stage.name());
     }
 
     /**
@@ -130,13 +160,28 @@ public final class SampleService {
         return api.progress(id).bodyOrFail(200);
     }
 
+    /** The "refusal expected" twin of {@link #progress(String)}: the lab's answer, never a throw for a refusal. */
+    public LabResponse<Progress> attemptProgress(String sampleId) {
+        return api.progress(sampleId);
+    }
+
     /** A sample's test result (available from Result Ready on); the lab must answer 200. */
     public TestResult result(String id) {
         return api.result(id).bodyOrFail(200);
     }
 
+    /** The "refusal expected" twin of {@link #result(String)}: the lab's answer, never a throw for a refusal. */
+    public LabResponse<TestResult> attemptResult(String sampleId) {
+        return api.result(sampleId);
+    }
+
     /** A sample's report (available at Report Generated); the lab must answer 200. */
     public Report report(String id) {
         return api.report(id).bodyOrFail(200);
+    }
+
+    /** The "refusal expected" twin of {@link #report(String)}: the lab's answer, never a throw for a refusal. */
+    public LabResponse<Report> attemptReport(String sampleId) {
+        return api.report(sampleId);
     }
 }
