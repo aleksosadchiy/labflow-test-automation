@@ -45,6 +45,8 @@
     </dependencies>
 
     <build>
+        <!-- Stable artifact name so CI and docs can rely on target/mock-lab-app.jar (no version suffix). -->
+        <finalName>mock-lab-app</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

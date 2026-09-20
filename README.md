@@ -6,7 +6,7 @@ A small, production-minded Java test automation framework built as a **reference
 
 ## Status
 
-🚧 In planning. Product definition, roadmap, and architecture are defined (see below); implementation has not started yet.
+🚧 In progress. Product definition, roadmap, and architecture are defined (see below); the mock lab application (the system under test) is built and runnable — see [Running the lab](#running-the-lab). The test modules are not scaffolded yet.
 
 ## Project Context
 
@@ -43,6 +43,48 @@ Full rationale and alternatives considered are in [`context/product/architecture
 ├── test-data/        # Test-data builders/factories
 └── .github/workflows/tests.yml
 ```
+
+## Running the lab
+
+The mock lab (`mock-lab-app/`) is the system under test. It needs only a JDK 17+ — Maven is provided by the bundled Maven Wrapper (`mvnw`, Maven 3.9.11), and no Docker or database is involved (data is in-memory).
+
+**Start it locally (one command):**
+
+```bash
+cd mock-lab-app && ./mvnw spring-boot:run
+```
+
+**Or build and run the jar** (the form intended for CI, where it is started in the background with `&`):
+
+```bash
+cd mock-lab-app
+./mvnw -q package -DskipTests
+java -jar target/mock-lab-app.jar
+```
+
+The lab listens on `http://localhost:8080` by default (`server.port` in `application.yml`).
+
+**Readiness check.** `GET /health` is open (no login needed) and returns `503 {"status":"STARTING"}` until start-up, including seeding the fixture data, has finished, then `200 {"status":"UP"}`. Wait for it with a curl retry poll (`--retry-connrefused` also retries while the port is still closed):
+
+```bash
+curl -sf --retry 30 --retry-delay 1 --retry-max-time 30 --retry-connrefused http://localhost:8080/health
+```
+
+Do not use `/login` as a readiness signal: the port opens before the seed data is loaded, so `/login` can respond while the lab is still starting.
+
+**Seeded fixtures.** Every start begins from the same clean state (nothing is kept between runs), so tests can rely on these values (defined in `mock-lab-app/src/main/java/com/mocklab/config/DataSeeder.java` and `application.yml`):
+
+| Patient ID | Name |
+| --- | --- |
+| `PAT-1001` | Alice Johnson |
+| `PAT-1002` | Brian Smith |
+| `PAT-1003` | Carla Diaz |
+| `PAT-1004` | David Chen |
+| `PAT-1005` | Emily Turner |
+| `PAT-1006` | Farid Haidari |
+| `PAT-1007` | Grace Kim |
+
+The one seeded login user is `LabTech`, with the local mock-only password `I_Like_This_Lab`. Both are defaults in `application.yml` and can be overridden with the `MOCK_LAB_USERNAME` and `MOCK_LAB_PASSWORD` environment variables.
 
 ## Running Tests
 
