@@ -35,13 +35,13 @@ Each slice leaves `mock-lab-app` runnable (`./mvnw spring-boot:run` from `mock-l
   - [x] Task: Implement `api/PatientApiController` (`POST /api/patients` → 201 + `Location`, `GET /api/patients/{id}` → 200) with `PatientRequest`/`PatientResponse` DTOs under `api/dto/`. **[Agent: spring-boot-backend]**
   - [x] Verify: With the app running and the correct key, via `curl`: `POST /api/patients` with a name returns 201, a `PAT-…` ID and the name, and `GET` on that ID returns it; `GET /api/patients/PAT-1001` returns "Alice Johnson"; blank/missing name → 400 "Patient name is required."; unknown ID → 404 "Patient not found."; a broken JSON body → 400 "Malformed request body." with nothing created; `DELETE /api/patients/PAT-1001` → 405 "Method not allowed."; no key → 401. Delete temp output. **[Agent: spring-boot-backend]**
 
-- [ ] **Slice 4: Place and Look Up Orders**
+- [x] **Slice 4: Place and Look Up Orders**
 
   > A client can place an order for an existing patient and look it up; missing/unknown patients and unknown orders are rejected with the specified messages. (Functional spec §2.3)
 
-  - [ ] Task: Add `SampleRepository.findByOrderId(orderId)` and implement `service/OrderService` (`place(patientId)` → "Patient is required." (VALIDATION) then "Patient not found." (NOT_FOUND); `find(id)` → "Order not found." (NOT_FOUND) returning the order with its samples) with unit tests. **[Agent: spring-boot-backend]**
-  - [ ] Task: Implement `api/OrderApiController` (`POST /api/orders` → 201 + `Location`, `GET /api/orders/{id}` → 200) with `OrderRequest`/`OrderResponse` DTOs (`id, patientId, createdAt, samples[{id, sampleType, status}]`). **[Agent: spring-boot-backend]**
-  - [ ] Verify: With the app running, via `curl`: place an order for `PAT-1001` (201, `ORD-…` ID, `samples: []`) and fetch it; missing/blank patient → 400 "Patient is required."; unknown patient → 404 "Patient not found."; unknown order ID → 404 "Order not found."; a patient registered in Slice 3 can also receive an order. Delete temp output. **[Agent: spring-boot-backend]**
+  - [x] Task: Add `SampleRepository.findByOrderId(orderId)` and implement `service/OrderService` (`place(patientId)` → "Patient is required." (VALIDATION) then "Patient not found." (NOT_FOUND); `find(id)` → "Order not found." (NOT_FOUND) returning the order with its samples) with unit tests. **[Agent: spring-boot-backend]**
+  - [x] Task: Implement `api/OrderApiController` (`POST /api/orders` → 201 + `Location`, `GET /api/orders/{id}` → 200) with `OrderRequest`/`OrderResponse` DTOs (`id, patientId, createdAt, samples[{id, sampleType, status}]`). **[Agent: spring-boot-backend]**
+  - [x] Verify: With the app running, via `curl`: place an order for `PAT-1001` (201, `ORD-…` ID, `samples: []`) and fetch it; missing/blank patient → 400 "Patient is required."; unknown patient → 404 "Patient not found."; unknown order ID → 404 "Order not found."; a patient registered in Slice 3 can also receive an order. Delete temp output. **[Agent: spring-boot-backend]**
 
 - [ ] **Slice 5: Register and View Samples (Shared with the Screens)**
 

@@ -292,22 +292,4 @@ class PatientApiAcceptanceTest extends AbstractApiAcceptanceTest {
         String body = result.getResponse().getContentAsString();
         return com.jayway.jsonpath.JsonPath.read(body, "$.id");
     }
-
-    /** Asserts the standard error body: every field present, with the expected status, message and path. */
-    private static void expectError(MvcResult result, int status, String error, String message, String path)
-            throws Exception {
-        String body = result.getResponse().getContentAsString();
-        assertThat(result.getResponse().getStatus()).isEqualTo(status);
-        assertThat(result.getResponse().getContentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
-        assertThat((Integer) com.jayway.jsonpath.JsonPath.read(body, "$.status")).isEqualTo(status);
-        assertThat((String) com.jayway.jsonpath.JsonPath.read(body, "$.error")).isEqualTo(error);
-        assertThat((String) com.jayway.jsonpath.JsonPath.read(body, "$.message")).isEqualTo(message);
-        assertThat((String) com.jayway.jsonpath.JsonPath.read(body, "$.path")).isEqualTo(path);
-        assertThat((String) com.jayway.jsonpath.JsonPath.read(body, "$.timestamp")).isNotBlank();
-    }
-
-    private static void expectError(ResultActions result, int status, String error, String message, String path)
-            throws Exception {
-        expectError(result.andReturn(), status, error, message, path);
-    }
 }
