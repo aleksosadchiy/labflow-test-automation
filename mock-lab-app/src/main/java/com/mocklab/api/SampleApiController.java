@@ -1,5 +1,8 @@
 package com.mocklab.api;
 
+import com.mocklab.api.dto.ProgressResponse;
+import com.mocklab.api.dto.ReportResponse;
+import com.mocklab.api.dto.ResultResponse;
 import com.mocklab.api.dto.SampleCreatedResponse;
 import com.mocklab.api.dto.SampleRequest;
 import com.mocklab.api.dto.SampleResponse;
@@ -89,5 +92,20 @@ public class SampleApiController {
 
         processingJobService.advanceTo(id, target);
         return SampleResponse.from(sampleQueryService.get(id));
+    }
+
+    @GetMapping("/{id}/progress")
+    public ProgressResponse progress(@PathVariable String id) {
+        return ProgressResponse.from(sampleQueryService.progress(id));
+    }
+
+    @GetMapping("/{id}/result")
+    public ResultResponse result(@PathVariable String id) {
+        return ResultResponse.from(sampleQueryService.result(id));
+    }
+
+    @GetMapping("/{id}/report")
+    public ReportResponse report(@PathVariable String id) {
+        return ReportResponse.from(sampleQueryService.report(id));
     }
 }

@@ -11,7 +11,9 @@ import com.mocklab.domain.SampleType;
 import com.mocklab.exception.FailureKind;
 import com.mocklab.exception.LabRuleException;
 import com.mocklab.repository.ProcessingJobRepository;
+import com.mocklab.repository.ReportRepository;
 import com.mocklab.repository.SampleRepository;
+import com.mocklab.repository.TestResultRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,7 +44,8 @@ class SampleQueryServiceTest {
     void setUp() {
         sampleRepository = new SampleRepository();
         processingJobRepository = new ProcessingJobRepository();
-        service = new SampleQueryService(sampleRepository, processingJobRepository);
+        service = new SampleQueryService(
+                sampleRepository, processingJobRepository, new TestResultRepository(), new ReportRepository());
     }
 
     private Sample saveSample(String id, SampleType type, SampleStatus storedStatus, Instant createdAt) {
