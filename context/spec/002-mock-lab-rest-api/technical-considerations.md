@@ -1,7 +1,7 @@
 # Technical Specification: Mock Lab REST API (Lab Backend for Automated Clients)
 
 - **Functional Specification:** `context/spec/002-mock-lab-rest-api/functional-spec.md`
-- **Status:** Draft
+- **Status:** Completed
 - **Author(s):** Alex
 
 ---
