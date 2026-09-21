@@ -22,14 +22,14 @@ _Before automation can begin: stand up the system under test. This is a practice
 
 _The foundation: project architecture and REST API test automation — the highest-priority skills for this role._
 
-- [ ] **Maven Multi-Module Project Setup**
-  - [ ] **Project Skeleton:** Stand up a parent POM with clearly separated modules (e.g. `common`, `api-client`, `api-tests`, `ui-tests`, `test-data`, or a simpler 3-module equivalent) so responsibilities are isolated from the start.
-  - [ ] **Simulated Lab Domain Models:** Define the core entities of the simplified workflow — Patient, Order, Sample, Processing Job, Test Result, Report — and the status progression from Accessioned through Report Generated.
+- [x] **Maven Multi-Module Project Setup** _(Done in `context/spec/003-test-automation-foundation/`.)_
+  - [x] **Project Skeleton:** Stand up a parent POM with clearly separated modules (e.g. `common`, `api-client`, `api-tests`, `ui-tests`, `test-data`, or a simpler 3-module equivalent) so responsibilities are isolated from the start.
+  - [x] **Simulated Lab Domain Models:** Define the core entities of the simplified workflow — Patient, Order, Sample, Processing Job, Test Result, Report — and the status progression from Accessioned through Report Generated.
 
-- [ ] **Core API Test Automation**
-  - [ ] **API Client Layer:** Build a clean Test → Service/API layer → HTTP client separation (Retrofit + OkHttp, or RestAssured) so no test contains raw HTTP calls.
-  - [ ] **Positive Workflow Coverage:** Automate the happy-path journey — create/retrieve a patient, create an order, register/retrieve a sample, verify initial status, start and complete processing, generate and retrieve a report.
-  - [ ] **Negative Workflow Coverage:** Automate failure scenarios — missing mandatory fields, invalid patient ID, duplicate sample, invalid sample type, non-existing sample, unauthorized request, invalid status transition, malformed request body, unsupported HTTP method — asserting status code, response body, business fields, headers, and error messages (not status code alone).
+- [x] **Core API Test Automation** _(Done in `context/spec/003-test-automation-foundation/`.)_
+  - [x] **API Client Layer:** Build a clean Test → Service/API layer → HTTP client separation (Retrofit + OkHttp, or RestAssured) so no test contains raw HTTP calls.
+  - [x] **Positive Workflow Coverage:** Automate the happy-path journey — create/retrieve a patient, create an order, register/retrieve a sample, verify initial status, start and complete processing, generate and retrieve a report.
+  - [x] **Negative Workflow Coverage:** Automate failure scenarios — missing mandatory fields, invalid patient ID, duplicate sample, invalid sample type, non-existing sample, unauthorized request, invalid status transition, malformed request body, unsupported HTTP method — asserting status code, response body, business fields, headers, and error messages (not status code alone).
 
 ---
 
