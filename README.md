@@ -88,12 +88,40 @@ The one seeded login user is `LabTech`, with the local mock-only password `I_Lik
 
 ## Running Tests
 
-Once scaffolded, tests will run via:
+The checks run against a lab you start yourself: they never build, start or stop it. Use two terminals.
+
+**Required tools.** A Java 17+ runtime and internet access the first time (the Maven Wrapper `./mvnw` downloads Maven, and Maven downloads the dependencies). Nothing else needs to be installed.
+
+**Terminal 1 — start the lab** and leave it running (see [Running the lab](#running-the-lab)). Wait until `http://localhost:8080/health` answers `200`:
 
 ```bash
-mvn clean test
-mvn -pl api-tests test
-mvn -pl ui-tests test
+cd mock-lab-app && ./mvnw spring-boot:run
 ```
 
-Configuration (base URL, browser, environment) will be supplied via environment variables or Maven system properties — no environment values are hardcoded.
+**Terminal 2 — run the checks**, from the repository root:
+
+```bash
+# everything (the framework's self-checks and the lab-workflow checks); the overall result is shown at the end
+./mvnw clean test
+
+# only the lab-workflow checks, plus the framework's quick self-checks (they need no lab)
+./mvnw -pl api-tests -am test
+```
+
+`-pl api-tests` selects the checks module, and `-am` ("also make") builds the modules it depends on (`common`, `api-client`) in the same run; without it Maven cannot find them on a fresh clone, because nothing is installed into the local repository.
+
+**Settings** come from outside the project — no file is edited:
+
+| Setting | What it sets | Default |
+| --- | --- | --- |
+| `BASE_URL` (environment) or `-DbaseUrl=…` (Maven property; wins if both are set) | The lab's address | `http://localhost:8080` |
+| `API_TOKEN` (environment only) | The lab's access key | The lab's documented local key, `mock-lab-local-token` |
+
+```bash
+./mvnw clean test -DbaseUrl=http://localhost:18080
+API_TOKEN=<key> ./mvnw clean test
+```
+
+**When the lab cannot be reached, or rejects the key,** the run stops before any lab-workflow check with one message: the first `[ERROR]` line after the `T E S T S` line of the `api-tests` module, starting `LAB PRE-FLIGHT FAILED:`. It names the address that was tried and how to start the lab, or says the access key was rejected. Zero checks run and the build fails.
+
+**Caution — keep the key out of reports and logs.** A key passed as `-DapiToken=…` is ignored by the framework, but Surefire still records command-line system properties in its XML reports (`target/surefire-reports`), and `./mvnw -X` prints every environment variable, including `API_TOKEN`. Never share or attach such reports or debug logs (for example to CI). Use `-DbaseUrl` only for a non-secret address.
