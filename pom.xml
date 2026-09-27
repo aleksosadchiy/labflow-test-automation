@@ -20,6 +20,7 @@
     <modules>
         <module>common</module>
         <module>api-client</module>
+        <module>ui-tests</module>
         <module>api-tests</module>
     </modules>
 
@@ -31,9 +32,11 @@
         <rest-assured.version>5.5.7</rest-assured.version>
         <jackson.version>2.19.2</jackson.version>
         <assertj.version>3.27.7</assertj.version>
+        <playwright.version>1.63.0</playwright.version>
 
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+        <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -61,6 +64,11 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.playwright</groupId>
+                <artifactId>playwright</artifactId>
+                <version>${playwright.version}</version>
             </dependency>
 
             <!-- Sibling modules -->
@@ -98,6 +106,39 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <!--
+                One-time browser install: `./mvnw -N exec:java` runs Playwright's own CLI
+                (`install chromium`), so no Node toolchain is needed. It lives on the root only
+                (inherited=false, run with -N) and brings Playwright in as a plugin dependency, so it
+                needs no reactor build and no sibling SNAPSHOTs in ~/.m2.
+                The default arguments below are replaced by -Dexec.args, which reuses the same CLI,
+                e.g. `-Dexec.args="show-trace <path-to-trace.zip>"`.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <inherited>false</inherited>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.microsoft.playwright</groupId>
+                        <artifactId>playwright</artifactId>
+                        <version>${playwright.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <mainClass>com.microsoft.playwright.CLI</mainClass>
+                    <includeProjectDependencies>false</includeProjectDependencies>
+                    <includePluginDependencies>true</includePluginDependencies>
+                    <arguments>
+                        <argument>install</argument>
+                        <argument>chromium</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 
 </project>

@@ -20,11 +20,11 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
 
 ---
 
-- [ ] **Slice 1: Sign In Through the Real Screen with One Command**
+- [x] **Slice 1: Sign In Through the Real Screen with One Command**
 
   > The `ui-tests` module exists, the browser is installed with one documented command, and the first screen check signs in with the lab's valid details and lands on the Sample List. It runs headless by default and visibly with `-Dheaded=true`. (FS §2.1 ¶1–4 and ¶6, §2.2 ¶4, §2.4 ¶1)
 
-  - [ ] Task: Build wiring.
+  - [x] Task: Build wiring.
     - Root `pom.xml`:
       - Add the property `playwright.version=1.63.0` and a `com.microsoft.playwright:playwright` entry in `dependencyManagement`.
       - Add the property `exec-maven-plugin.version=3.6.4`.
@@ -35,7 +35,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
       - test scope: `junit-jupiter`, `junit-platform-launcher`, `assertj-core`.
     - Leave Surefire at its defaults. Do not touch `mock-lab-app/`.
     - **[Agent: github-actions-cicd]**
-  - [ ] Task: Credentials and the first two Page Objects, in `ui-tests/src/main/java/com/labflow/ui/`.
+  - [x] Task: Credentials and the first two Page Objects, in `ui-tests/src/main/java/com/labflow/ui/`.
     - `config/Password`: blank values are rejected, `toString()` returns `***`, and the raw value is available only through `reveal()`.
     - `config/UiCredentials`:
       - Record `(username, Password)`, loaded with `load(sysProps, env)` and `fromEnvironment()`.
@@ -48,7 +48,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - Page Objects hold no assertions and no JUnit.
     - Unit tests `UiCredentialsTest` and `PasswordTest` cover precedence, blank values, the ignored system property, defaults, and masking.
     - **[Agent: general-purpose]**
-  - [ ] Task: Test-side support, in `ui-tests/src/test/java/com/labflow/ui/tests/`.
+  - [x] Task: Test-side support, in `ui-tests/src/test/java/com/labflow/ui/tests/`.
     - `support/BrowserExtension`:
       - One `Playwright` + Chromium `Browser` per run, lazily created in the root `ExtensionContext.Store` as a `CloseableResource`.
       - Before each test: a fresh `BrowserContext` (viewport 1280×800) and `Page`, injected into the test instance. Close the context after each test.
@@ -65,7 +65,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
       - Header comments `// @layer: e2e`, `// @spec: 004-ui-automation-page-objects`, `// @regression`.
       - The test contains no locators or URLs.
     - **[Agent: testing-expert]**
-  - [ ] Verify: Start the lab on 18080, then do all of the following:
+  - [x] Verify: Start the lab on 18080, then do all of the following:
     - Run `./mvnw -N exec:java`. It exits 0 and reports chromium as already installed or installs it.
     - Run `./mvnw clean test -DbaseUrl=http://localhost:18080`. All modules including `ui-tests` are green; quote the per-module counts.
     - Run `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080`. The reactor is exactly `common`, `api-client`, `ui-tests` (no `api-tests`, no `mock-lab-app`) and the result is green.
