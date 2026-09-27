@@ -221,11 +221,11 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     
     **[Agent: testing-expert]**
 
-- [ ] **Slice 7: The Structure Is Enforced and Documented**
+- [x] **Slice 7: The Structure Is Enforced and Documented**
 
   > Guard tests keep locators and URLs out of checks, assertions out of Page Objects and sleeps out of everything. The README explains how to install the browser, run and watch the screen checks, and investigate a failure. (FS §2.1 ¶3, §2.2 ¶1–3 and ¶5, §2.3)
 
-  - [ ] Task: Add plain-text guard tests in `ui-tests/src/test/java/.../guard/`, in the same style as `api-tests` (`CheckSources`-like helper, forbidden strings split so the guard does not match itself, fail loudly if no files are found):
+  - [x] Task: Add plain-text guard tests in `ui-tests/src/test/java/.../guard/`, in the same style as `api-tests` (`CheckSources`-like helper, forbidden strings split so the guard does not match itself, fail loudly if no files are found):
     1. `happy`/`rejection` contain no `locator(`, `getByRole(`, `"#`, `.navigate(`, `"/samples`, `"/login`, or `com.microsoft.playwright.options`.
     2. `ui/pages/**` contains no `assertThat`, `Assertions` or `PlaywrightAssertions`.
     3. Nothing in `ui-tests/src` uses `Thread.sleep` or `waitForTimeout`.
@@ -236,7 +236,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
        - `UiPreflightListener` is registered through ServiceLoader.
     
     Prove each guard with RED validation. **[Agent: testing-expert]**
-  - [ ] Task: Add a "Screen checks" part under `## Running Tests` in `README.md`, in the existing bold-label style:
+  - [x] Task: Add a "Screen checks" part under `## Running Tests` in `README.md`, in the existing bold-label style:
     - the one-time `./mvnw -N exec:java` (with `--with-deps` noted for Linux);
     - `./mvnw -pl ui-tests -am test`, and that `./mvnw clean test` now includes it (`-fae` for both verdicts);
     - `-Dheaded=true` and `-DslowMo`;
@@ -245,7 +245,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - how to open a trace (`./mvnw -N exec:java -Dexec.args="show-trace <zip>"` or trace.playwright.dev).
     
     Update `## Planned Structure` to list `ui-tests`. **[Agent: testing-expert]**
-  - [ ] Verify: With the lab on 18080:
+  - [x] Verify: With the lab on 18080:
     - Full `./mvnw clean test` is green.
     - One-element change: locally rename one id in a lab template (for example `#current-status`), restart the lab, and show that the failing checks are fixed by editing exactly one Page Object. Then revert both the lab and the Page Object exactly, and `git diff --stat` is empty for them.
     - Follow the README's screen-check steps verbatim, and every command works.
