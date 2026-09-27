@@ -76,11 +76,11 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - Stop the lab and delete temp directories and output.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 2: Sign-In Refusals, and Stop Early When the Lab Is Down**
+- [x] **Slice 2: Sign-In Refusals, and Stop Early When the Lab Is Down**
 
   > Wrong or blank details are refused with the lab's exact messages, screens require signing in, and a run against a stopped lab stops once with a clear message. (FS §2.1 ¶5, §2.3, §2.4 ¶2–4)
 
-  - [ ] Task: Extend `LoginPage` with:
+  - [x] Task: Extend `LoginPage` with:
     - `signInExpectingError(username, password)`, which returns `LoginPage` once `#error-message` is visible;
     - `errorMessage()`.
     
@@ -88,7 +88,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
 
     Only Page Objects know the URLs. Update the unit tests where relevant.
     **[Agent: general-purpose]**
-  - [ ] Task: Add `support/UiPreflightListener` (a `LauncherSessionListener` calling `LabPreflight.check(LabConfig.fromEnvironment())`), registered in `ui-tests/src/test/resources/META-INF/services/org.junit.platform.launcher.LauncherSessionListener`.
+  - [x] Task: Add `support/UiPreflightListener` (a `LauncherSessionListener` calling `LabPreflight.check(LabConfig.fromEnvironment())`), registered in `ui-tests/src/test/resources/META-INF/services/org.junit.platform.launcher.LauncherSessionListener`.
 
     Add `rejection/SignInRejectionTest` with three checks:
     - `wrongPasswordIsRefused`: a deliberately fake password; expect the message `"Invalid username or password."` from `LabMessages`, or the same literal if it is not in `LabMessages`, and the Sign In screen stays.
@@ -96,8 +96,9 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - `screensRequireSignIn`: open the Sample List signed out, and the Sign In screen is shown.
 
     All three get business `@DisplayName`s. **[Agent: testing-expert]**
-  - [ ] Verify: Start the lab on 18080.
-    - `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080` is green, and the run output lists the parameterized rows under readable names.
+  - [x] Task: _(Added after the first Slice 2 Verify found that business names never reach the run output, FS §2.3 ¶3.)_ In the root `pom.xml` `pluginManagement`, configure `maven-surefire-plugin` with `statelessTestsetReporter` = `JUnit5Xml30StatelessReporter` (phrased test-case method names) and `statelessTestsetInfoReporter` = `JUnit5StatelessTestsetInfoReporter` (phrased class names in the Running and summary lines). Report file names and the XML `classname` stay the Java class name, so tools can still link results back to source. Both `api-tests` and `ui-tests` then list every check, including each parameterized row, under its `@DisplayName` in `TEST-*.xml`. Surefire's console never lists passing tests one by one; it shows a check's name only when that check fails. Add a short comment saying why. Leave every other Surefire setting at its default. Make sure `./mvnw clean test` stays green and `api-tests`' guard tests (which read reports or sources) still pass. **[Agent: github-actions-cicd]**
+  - [x] Verify: Start the lab on 18080.
+    - `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080` is green, and `TEST-*SignInRejectionTest.xml` lists every check, including each parameterized row, under its business name.
     - Stop the lab and run the same command. It aborts once with a `LAB PRE-FLIGHT FAILED:` line naming `http://localhost:18080`, and no screen check reports its own failure.
     - Delete temp output.
     

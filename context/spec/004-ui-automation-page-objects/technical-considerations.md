@@ -34,7 +34,8 @@ Browser: Chromium only, headless by default, with `-Dheaded=true` to show it. Ar
 | New module | root `pom.xml` `<modules>` | `ui-tests`, listed after `api-client` |
 | Version pin | root `<properties>` + `<dependencyManagement>` | `playwright.version=1.63.0` (latest on Maven Central, 2026-09-14), artifact `com.microsoft.playwright:playwright` |
 | Browser install helper | root `<build><plugins>` | `exec-maven-plugin` 3.6.4 (pinned via property). Settings: `<inherited>false</inherited>`, a plugin-level dependency on `playwright`, `mainClass=com.microsoft.playwright.CLI`, `includeProjectDependencies=false`, `includePluginDependencies=true`, default args `install chromium` |
-| Module POM | `ui-tests/pom.xml` | compile: `common`, `api-client`, `playwright` (Page Objects in `src/main` need it). test: `junit-jupiter`, `junit-platform-launcher` (pre-flight listener), `assertj-core`. No versions (all managed at the root). Surefire is inherited at its defaults. |
+| Module POM | `ui-tests/pom.xml` | compile: `common`, `api-client`, `playwright` (Page Objects in `src/main` need it). test: `junit-jupiter`, `junit-platform-launcher` (pre-flight listener), `assertj-core`. No versions (all managed at the root). Surefire is inherited from the root. |
+| Readable test names | root `pluginManagement` for Surefire | JUnit 5 stateless-testset and console reporters with phrased names, so `@DisplayName` and parameterized row names appear in the console and in the XML/TXT reports for every module (FS §2.3 ¶3). Every other Surefire setting keeps its default. _Added during Slice 2 verification._ |
 
 **Commands** (all from the repository root, with the lab running):
 

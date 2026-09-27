@@ -19,6 +19,7 @@ public final class LoginPage {
     private final Locator usernameField;
     private final Locator passwordField;
     private final Locator signInButton;
+    private final Locator errorMessage;
 
     private LoginPage(Page page) {
         this.page = page;
@@ -28,11 +29,21 @@ public final class LoginPage {
         this.passwordField = page.locator("#password");
         // The button has no id; its role and visible label identify it (and pin the label).
         this.signInButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Sign In"));
+        this.errorMessage = page.locator("#error-message");
     }
 
     /** Opens the Sign In screen and returns once its form is ready. */
     public static LoginPage open(Page page, LabConfig config) {
         page.navigate(config.baseUrl() + PATH);
+        return ready(page);
+    }
+
+    /**
+     * Returns the Sign In screen once its form is ready. Used by the Page Objects whose actions
+     * land on this screen (for example, a signed-out visit to another screen). Waits with
+     * Playwright's auto-waiting (default timeout).
+     */
+    static LoginPage ready(Page page) {
         LoginPage loginPage = new LoginPage(page);
         loginPage.usernameField.waitFor();
         return loginPage;
@@ -44,6 +55,23 @@ public final class LoginPage {
         passwordField.fill(credentials.password().reveal());
         signInButton.click();
         return SampleListPage.ready(page);
+    }
+
+    /**
+     * Submits the given details, which are expected to be refused (deliberately wrong or blank
+     * values, never real secrets), and returns once the screen's error message is visible.
+     */
+    public LoginPage signInExpectingError(String username, String password) {
+        usernameField.fill(username);
+        passwordField.fill(password);
+        signInButton.click();
+        errorMessage.waitFor();
+        return this;
+    }
+
+    /** The error message currently shown on the Sign In screen. */
+    public String errorMessage() {
+        return errorMessage.textContent().strip();
     }
 
     /** Whether the Sign In screen is currently displayed. */

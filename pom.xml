@@ -93,7 +93,10 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!-- Versions only. Surefire stays at its defaults on purpose (see technical-considerations 2.2). -->
+                <!--
+                    Versions, plus one Surefire change: readable test names. Everything else in
+                    Surefire stays at its defaults on purpose (see spec 003 technical-considerations 2.2).
+                -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -103,6 +106,27 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <!--
+                        Surefire's JUnit 5 reporters, so a check shows up under its @DisplayName and
+                        its parameterized row name (e.g. "A blank username is refused") instead of its
+                        Java method name: in the "Running ..." / "Tests run ..." console lines, the .txt
+                        reports and the TEST-*.xml reports, for every module (spec 004 FS 2.3).
+                        Report FILE names and the XML testcase classname stay the Java class name, so
+                        tools that map results back to source files keep working.
+                    -->
+                    <configuration>
+                        <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+                            <usePhrasedFileName>false</usePhrasedFileName>
+                            <usePhrasedTestSuiteClassName>true</usePhrasedTestSuiteClassName>
+                            <usePhrasedTestCaseClassName>false</usePhrasedTestCaseClassName>
+                            <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+                        </statelessTestsetReporter>
+                        <statelessTestsetInfoReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoReporter">
+                            <usePhrasedFileName>false</usePhrasedFileName>
+                            <usePhrasedClassNameInRunning>true</usePhrasedClassNameInRunning>
+                            <usePhrasedClassNameInTestCaseSummary>true</usePhrasedClassNameInTestCaseSummary>
+                        </statelessTestsetInfoReporter>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
