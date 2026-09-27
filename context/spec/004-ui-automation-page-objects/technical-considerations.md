@@ -122,15 +122,19 @@ In one `afterEach` step, capture first and then close, so there is no ordering q
 
 **Tracing options:** `screenshots=true`, `snapshots=true`, `sources=false`.
 
-**Keeping the real password out of the recording (FS 2.9):** Playwright records `fill()` arguments in the trace's action log and has no built-in masking. The control is therefore structural:
+**Keeping the real password out of the recording (FS 2.9):** Playwright has no built-in masking. Three parts of a trace can carry the password:
+- the action log records every `fill()` argument;
+- DOM snapshots record input values, including `type=password` (`__playwright_value_`);
+- the network log (`trace.network`, plus resource files) records the sign-in form's POST body.
+
+The control is therefore structural:
 - The real password is typed only by `LoginPage.signIn(UiCredentials)`.
-- Around that single `fill`, `RecordingPause` calls `tracing.stopChunk()` with no path (discarding what was recorded so far: opening the sign-in screen and typing the username) and `tracing.startChunk()` right after. Recording resumes at the submit click.
+- `RecordingPause` stops tracing with no path, which discards everything recorded so far, including the network log. It runs the sign-in (password fill, submit, and the wait until the Sample List is ready), then starts tracing again with the same options. Those options come from one shared constant in `ui-tests/src/main`, also used by `BrowserExtension`. The recording therefore begins after the login form, and the password in it, are gone. Whether tracing is running is detected by calling `startChunk()`, which throws "Must start tracing before starting a new chunk" when it is off. `stop()` without a path cannot be used for this, because it silently does nothing when tracing is off.
 - The deliberately wrong or blank credentials in the rejection checks are not secrets, so they are recorded normally, which is useful when debugging.
-- **Assumption, to verify once built:** force a sign-in-dependent check to fail, open its `trace.zip`, and confirm that:
-  - the password appears in no action,
-  - the DOM snapshots do not expose the `type=password` field's value,
-  - `stop(path)` exports the post-resume chunk.
-  If snapshots do expose the value, clear the field before resuming the chunk, or move the resume point to after the redirect.
+- Trade-off: for checks that sign in, the saved trace starts at the Sample List. The failure screenshot still shows the screen at the moment of failure.
+- Proven by `SignInTraceTest`: it signs in against the real lab with tracing on, unzips the saved trace, and asserts that the password appears in no entry.
+
+_Changed during Slice 6. The first design paused with `stopChunk()` / `startChunk()` around the fill only. Experiments showed that DOM snapshots and the network log still captured the password, so that design was replaced._
 
 **Scenario-named failures:** the copied `ScenarioNameExtension` prefixes assertion failures with `[Scenario: <display name>]`. AssertJ's `as("…")` descriptions state the expected screen value next to what was read (FS 2.9 ¶1).
 

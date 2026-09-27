@@ -187,15 +187,21 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     
     **[Agent: testing-expert]**
 
-- [ ] **Slice 6: Failures Explain Themselves, Without Leaking the Password**
+- [x] **Slice 6: Failures Explain Themselves, Without Leaking the Password**
 
   > A failing screen check names its scenario, saves a screenshot and a Playwright trace in a folder named after the scenario, and keeps nothing for passing checks. The real password appears in no output, file name or trace. (FS §2.9)
 
-  - [ ] Task: Add `recording/RecordingPause` in `ui-tests/src/main`. It wraps an action with `tracing.stopChunk()`, with no path, before the action and `tracing.startChunk()` after it, so everything recorded up to the secret entry is discarded and recording resumes afterwards. It is a no-op if tracing is not running.
+  - [x] Task: Add `recording/RecordingPause` and a shared trace-options constant in `ui-tests/src/main`. The pause stops tracing with no path, which discards everything recorded so far, including the network log. It then runs the action and restarts tracing with the same options. When tracing is not running, it just runs the action.
 
-    Use it in `LoginPage.signIn(UiCredentials)` around the password `fill` only. `signInExpectingError` stays unpaused, because its values are deliberately fake. Unit-test the no-op path. **[Agent: general-purpose]**
-  - [ ] Task: Extend `BrowserExtension`.
-    - Start tracing per test with `screenshots=true`, `snapshots=true`, `sources=false`.
+    Use it in `LoginPage.signIn(UiCredentials)` around the password fill, the submit, and the wait for the Sample List, so recording resumes only after the login form is gone. `signInExpectingError` stays unpaused, because its values are deliberately fake.
+
+    Tests:
+    - unit tests for the pause;
+    - `SignInTraceTest`, which signs in against the real lab with tracing on and asserts that the saved trace contains the password in no entry: not in actions, DOM snapshots or the network log.
+
+    _(Reworked during Slice 6: a chunk-based pause around the fill alone still leaked the password through DOM snapshots and the network log. See tech spec §2.5.)_ **[Agent: general-purpose]**
+  - [x] Task: Extend `BrowserExtension`.
+    - Start tracing per test with the shared trace options from `ui-tests/src/main` (`screenshots=true`, `snapshots=true`, `sources=false`).
     - In one `afterEach`, do the following in order:
       - If `getExecutionException()` is present, save `screenshot.png` and stop tracing to `trace.zip` in `ui-tests/target/ui-failures/<TestClass>/<sanitised-display-name>[-<index>]/`.
       - Otherwise stop tracing with no path.
@@ -204,12 +210,12 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - Unit-test the sanitiser. One of the cases is a display name next to a password value, and the password must never appear in the result.
     
     **[Agent: testing-expert]**
-  - [ ] Verify: Start the lab on 18080.
+  - [x] Verify: Start the lab on 18080.
     - Temporarily change one expected value in `SampleRegistrationTest` so it fails, run `ui-tests`, and check:
       - the console shows `[Scenario: …]` with expected and actual values;
       - exactly one folder under `ui-tests/target/ui-failures/` holds `screenshot.png` and `trace.zip`;
       - `./mvnw -N exec:java -Dexec.args="show-trace --help"` works, and the trace opens in `show-trace` without errors (headless check: the command starts, then stop it);
-      - `unzip -p trace.zip | grep -c "$MOCK_LAB_PASSWORD value"` (literally the default `I_Like_This_Lab`) returns 0. If it does not, apply the tech spec §2.5 fallback, which clears the field before resuming or moves the resume point after the redirect, and repeat.
+      - `unzip -p trace.zip | grep -c "$MOCK_LAB_PASSWORD value"` (literally the default `I_Like_This_Lab`) returns 0. If it does not, report it as a failure; `SignInTraceTest` should already rule this out.
     - Restore the test exactly. A green run leaves `ui-failures/` absent or empty.
     - Delete all artifacts and temp output.
     

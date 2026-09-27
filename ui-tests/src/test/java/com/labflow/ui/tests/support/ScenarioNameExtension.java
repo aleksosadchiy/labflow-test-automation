@@ -1,5 +1,6 @@
 package com.labflow.ui.tests.support;
 
+import com.microsoft.playwright.PlaywrightException;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 import org.opentest4j.AssertionFailedError;
@@ -14,10 +15,13 @@ import org.opentest4j.AssertionFailedError;
  * {@code expected: "Accessioned" but was: "Ready for Processing"} is rethrown as
  * {@code [Scenario: A registered sample appears in the list as Accessioned] expected: ...}.
  *
- * <p>Only assertion failures are touched (AssertJ failures are {@link AssertionError}s).
- * Anything else, such as a navigation error, is a different kind of problem and is rethrown
- * unchanged. The original failure stays as the cause, and its expected and actual values, when
- * it has them, are kept so an IDE can still show the comparison.
+ * <p><b>Difference from the {@code api-tests} copy:</b> a screen check can also fail with a
+ * {@link PlaywrightException} that is not an assertion at all — for example a {@code
+ * TimeoutError} because a Page Object's wait for an element (say {@code #sample-details}) never
+ * resolved, because the expected screen never appeared. An API check has no such failure mode,
+ * so the original only ever touches {@link AssertionError}s. Here, a {@link PlaywrightException}
+ * gets the same {@code [Scenario: ...]} prefix, so a check that fails before ever reaching an
+ * assertion still names its scenario (FS 2.9 ¶1). Everything else is rethrown unchanged.
  *
  * <p>Registered on {@link UiTest} with {@code @ExtendWith}.
  */
@@ -25,14 +29,30 @@ public class ScenarioNameExtension implements TestExecutionExceptionHandler {
 
     @Override
     public void handleTestExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
-        if (!(throwable instanceof AssertionError)) {
-            throw throwable;
+        if (throwable instanceof AssertionError) {
+            throw withScenario(context, throwable);
         }
-        String message = "[Scenario: " + context.getDisplayName() + "] " + throwable.getMessage();
+        if (throwable instanceof PlaywrightException) {
+            throw new PlaywrightException(scenarioMessage(context, throwable), throwable);
+        }
+        throw throwable;
+    }
+
+    /**
+     * Wraps an {@link AssertionError} with the scenario prefix, keeping it as an
+     * {@link AssertionFailedError} and preserving expected/actual (when present) so an IDE can
+     * still show the comparison. The original is kept as the cause either way.
+     */
+    private static AssertionError withScenario(ExtensionContext context, Throwable throwable) {
+        String message = scenarioMessage(context, throwable);
         if (throwable instanceof AssertionFailedError original
                 && original.isExpectedDefined() && original.isActualDefined()) {
-            throw new AssertionFailedError(message, original.getExpected(), original.getActual(), original);
+            return new AssertionFailedError(message, original.getExpected(), original.getActual(), original);
         }
-        throw new AssertionFailedError(message, throwable);
+        return new AssertionFailedError(message, throwable);
+    }
+
+    private static String scenarioMessage(ExtensionContext context, Throwable throwable) {
+        return "[Scenario: " + context.getDisplayName() + "] " + throwable.getMessage();
     }
 }

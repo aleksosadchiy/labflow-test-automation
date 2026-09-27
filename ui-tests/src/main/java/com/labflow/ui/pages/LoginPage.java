@@ -5,6 +5,8 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.labflow.common.config.LabConfig;
 import com.labflow.ui.config.UiCredentials;
+import com.labflow.ui.recording.RecordingPause;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The lab's Sign In screen: what a person sees and does there. Only this class knows the
@@ -52,14 +54,27 @@ public final class LoginPage {
     /** Signs in with the given details and returns once the Sample List screen is ready. */
     public SampleListPage signIn(UiCredentials credentials) {
         usernameField.fill(credentials.username());
-        passwordField.fill(credentials.password().reveal());
-        signInButton.click();
-        return SampleListPage.ready(page);
+        // The real password must not end up in a saved trace (FS 2.9). A trace can carry it in
+        // three places: the action log (fill() values verbatim), the DOM snapshots (they record
+        // the value of a type=password field, so the snapshot for the Sign In click would hold
+        // it), and the network log (the form's POST body). So the pause covers the fill, the
+        // click and the wait for the Sample List: RecordingPause discards the trace so far and
+        // starts a new one only once the form holding the password is gone (tech spec §2.5).
+        // Trade-off: for a check that signs in, the saved trace starts at the Sample List.
+        AtomicReference<SampleListPage> landedOn = new AtomicReference<>();
+        RecordingPause.around(page, () -> {
+            passwordField.fill(credentials.password().reveal());
+            signInButton.click();
+            landedOn.set(SampleListPage.ready(page));
+        });
+        return landedOn.get();
     }
 
     /**
      * Submits the given details, which are expected to be refused (deliberately wrong or blank
      * values, never real secrets), and returns once the screen's error message is visible.
+     * Deliberately not paused with {@link RecordingPause}: these fake values are no secret,
+     * and seeing them in a failure trace helps debugging.
      */
     public LoginPage signInExpectingError(String username, String password) {
         usernameField.fill(username);
