@@ -104,11 +104,11 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     
     **[Agent: testing-expert]**
 
-- [ ] **Slice 3: Register a Sample on Screen and See It Listed as Accessioned**
+- [x] **Slice 3: Register a Sample on Screen and See It Listed as Accessioned**
 
   > A check prepares its own unique patient through the lab's connected interface, registers a sample on the Create Sample screen, and finds it in the Sample List by its id with status Accessioned. Every Create Sample refusal message is covered. (FS §2.5, §2.8 ¶1)
 
-  - [ ] Task: Page Objects.
+  - [x] Task: Page Objects.
     - `CreateSamplePage`:
       - `open(page, config)`;
       - `createSample(patientId, sampleTypeText)`, which returns `SampleDetailsPage` because the lab redirects to the details screen;
@@ -122,7 +122,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - `SampleDetailsPage` (minimal for now): `open(page, config, id)`, `sampleId()`, `backToList()` if the list must be reached by navigation.
 
     Add unit tests where there is pure logic, for example the row/status mapping. **[Agent: general-purpose]**
-  - [ ] Task: Add the `UiTest.newPatient()` helper, which calls `lab.patients().register(UniqueData.name("ui-patient"))`.
+  - [x] Task: Add the `UiTest.newPatient()` helper, which calls `lab.patients().register(UniqueData.name("ui-patient"))`.
 
     Add `happy/SampleRegistrationTest#registeredSampleIsListedAsAccessioned`, which checks the patient name and `WorkflowStage.ACCESSIONED` in the row found by the new sample's id.
 
@@ -132,7 +132,7 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - `unsupportedSampleTypeIsRefused` → `"Invalid sample type."`, using a known patient.
 
     Expected texts come from `LabMessages`. **[Agent: testing-expert]**
-  - [ ] Verify: With the lab on 18080:
+  - [x] Verify: With the lab on 18080:
     - `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080` is green.
     - Run it a second time against the same lab without a restart; it is green again.
     - Run `SampleRegistrationTest` alone with `-Dtest=…`; it is green.
