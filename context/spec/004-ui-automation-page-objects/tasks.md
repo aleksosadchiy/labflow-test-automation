@@ -167,20 +167,20 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     
     **[Agent: testing-expert]**
 
-- [ ] **Slice 5: The Report, Including One Full Journey Through the Screens**
+- [x] **Slice 5: The Report, Including One Full Journey Through the Screens**
 
   > One check walks a sample from registration to Report Generated using only the screens and reads its report. Another sees "Report is not ready yet." for an unfinished sample. (FS §2.7)
 
-  - [ ] Task: Add `ReportPage` with:
+  - [x] Task: Add `ReportPage` with:
     - `open(page, config, sampleId)`;
     - `sampleId()`, `testName()`, `resultValue()`, `generatedAt()` (as displayed text);
     - `notReadyMessage()`.
 
     Make `SampleDetailsPage.openReport()` real, using `#view-report-link`. **[Agent: general-purpose]**
-  - [ ] Task: Add `happy/ReportJourneyTest#fullJourneyThroughScreensEndsInReport`. It is the only screens-only journey: after the API patient, it registers the sample on screen, advances seven times on screen, opens the report, and checks that the report's sample id matches and that the test name, result value and generation date are non-blank.
+  - [x] Task: Add `happy/ReportJourneyTest#fullJourneyThroughScreensEndsInReport`. It is the only screens-only journey: after the API patient, it registers the sample on screen, advances seven times on screen, opens the report, and checks that the report's sample id matches and that the test name, result value and generation date are non-blank.
 
     Add `rejection/ReportRejectionTest#reportNotReadyBeforeFinalStage`, which prepares a sample through the API at a mid stage (for example `PROCESSING`) and checks the `"Report is not ready yet."` text from `LabMessages`. **[Agent: testing-expert]**
-  - [ ] Verify: With the lab on 18080:
+  - [x] Verify: With the lab on 18080:
     - `./mvnw clean test -DbaseUrl=http://localhost:18080` is green across all modules; quote the counts.
     - Run `ReportJourneyTest` alone; it is green.
     - Delete temp output.
