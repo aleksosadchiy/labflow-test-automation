@@ -140,11 +140,11 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     
     **[Agent: testing-expert]**
 
-- [ ] **Slice 4: Follow a Sample Through the Workflow on the Details Screen**
+- [x] **Slice 4: Follow a Sample Through the Workflow on the Details Screen**
 
   > The Details screen shows all eight stages with the current one marked, Advance moves the sample on without sleeps, the final stage offers the report instead of Advance, and an unknown id says "Sample not found." (FS §2.6, §2.8 ¶2)
 
-  - [ ] Task: Complete `SampleDetailsPage`:
+  - [x] Task: Complete `SampleDetailsPage`:
     - `patientName()`;
     - `currentStatus()` → `WorkflowStage`;
     - `stages()` → `List<StageView>`, where `StageView` is a record `(WorkflowStage, StageState)` and `StageState` is an enum `COMPLETED`/`CURRENT`/`REMAINING` taken from the `stage-*` CSS class;
@@ -154,13 +154,13 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     - `notFoundMessage()`.
 
     No `Thread.sleep` or `waitForTimeout`. Unit-test `StageState` parsing. **[Agent: general-purpose]**
-  - [ ] Task: Add `happy/SampleWorkflowTest` with:
+  - [x] Task: Add `happy/SampleWorkflowTest` with:
     - `newSampleStartsAtAccessioned`: eight stages in workflow order, `ACCESSIONED` current, the rest remaining;
     - `advancingOnceReachesReadyForProcessing`: `ACCESSIONED` completed, `READY_FOR_PROCESSING` current, six remaining;
     - `finalStageOffersReportInsteadOfAdvance`: prepare the sample with `lab.samples().walkTo(id, RESULT_READY)`, advance once on screen, then check Advance is gone and View Report is shown.
 
     Add `rejection/SampleDetailsRejectionTest#unknownSampleIsNotFound`, which uses a `UniqueData`-based id that does not exist. **[Agent: testing-expert]**
-  - [ ] Verify: With the lab on 18080:
+  - [x] Verify: With the lab on 18080:
     - The `ui-tests` run is green three times in a row. Quote the counts and note that the class order differs between runs.
     - `grep -rnE "Thread\.sleep|waitForTimeout" ui-tests/src` finds nothing.
     - Delete temp output.
