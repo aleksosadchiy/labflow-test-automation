@@ -37,9 +37,9 @@ _The foundation: project architecture and REST API test automation — the highe
 
 _Senior-level engineering capabilities: UI automation, reliable parallel execution, and isolated test data._
 
-- [ ] **UI Automation with Page Object Model**
-  - [ ] **Page Objects for Core Screens:** Implement Page Objects for the key UI flows (e.g. Login, Sample List, Create Sample, Sample Details, Report), encapsulating elements and actions rather than exposing locators to tests.
-  - [ ] **Business-Readable UI Scenarios:** Write UI test scenarios that read as user workflows rather than locator collections.
+- [x] **UI Automation with Page Object Model** _(Done in `context/spec/004-ui-automation-page-objects/`.)_
+  - [x] **Page Objects for Core Screens:** Implement Page Objects for the key UI flows (e.g. Login, Sample List, Create Sample, Sample Details, Report), encapsulating elements and actions rather than exposing locators to tests.
+  - [x] **Business-Readable UI Scenarios:** Write UI test scenarios that read as user workflows rather than locator collections.
 
 - [ ] **Reliable, Isolated Test Execution**
   - [ ] **JUnit 5 Test Design:** Use parameterized tests and tags (`api`, `ui`, `smoke`, `regression`) to organize and target test runs.

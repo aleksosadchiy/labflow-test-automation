@@ -6,7 +6,7 @@ A small, production-minded Java test automation framework built as a **reference
 
 ## Status
 
-🚧 In progress. Product definition, roadmap, and architecture are defined (see below); the mock lab application (the system under test) is built and runnable — see [Running the lab](#running-the-lab). The test modules are not scaffolded yet.
+🚧 In progress. Product definition, roadmap, and architecture are defined (see below); the mock lab application (the system under test) is built and runnable — see [Running the lab](#running-the-lab). The `api-tests` and `ui-tests` modules are scaffolded and green — see [Running Tests](#running-tests).
 
 ## Project Context
 
@@ -39,7 +39,7 @@ Full rationale and alternatives considered are in [`context/product/architecture
 ├── common/           # Shared domain models and utilities
 ├── api-client/       # REST API client layer (RestAssured)
 ├── api-tests/        # Positive/negative API test suites
-├── ui-tests/         # Page Object Model + UI test suites
+├── ui-tests/         # Page Objects in src/main, screen checks in src/test
 ├── test-data/        # Test-data builders/factories
 └── .github/workflows/tests.yml
 ```
@@ -116,12 +116,69 @@ cd mock-lab-app && ./mvnw spring-boot:run
 | --- | --- | --- |
 | `BASE_URL` (environment) or `-DbaseUrl=…` (Maven property; wins if both are set) | The lab's address | `http://localhost:8080` |
 | `API_TOKEN` (environment only) | The lab's access key | The lab's documented local key, `mock-lab-local-token` |
+| `MOCK_LAB_USERNAME` (environment only) | The screen checks' sign-in username | `LabTech` |
+| `MOCK_LAB_PASSWORD` (environment only, same as `API_TOKEN`) | The screen checks' sign-in password | The lab's documented local password, `I_Like_This_Lab` |
+| `-Dheaded=true` (Maven property only) | Shows the browser instead of running headless | `false` |
+| `-DslowMo=<ms>` (Maven property only) | Slows every Playwright action down by this many milliseconds | `0` |
 
 ```bash
 ./mvnw clean test -DbaseUrl=http://localhost:18080
 API_TOKEN=<key> ./mvnw clean test
 ```
 
-**When the lab cannot be reached, or rejects the key,** the run stops before any lab-workflow check with one message: the first `[ERROR]` line after the `T E S T S` line of the `api-tests` module, starting `LAB PRE-FLIGHT FAILED:`. It names the address that was tried and how to start the lab, or says the access key was rejected. Zero checks run and the build fails.
+**When the lab cannot be reached, or rejects the key,** the run stops before any lab-workflow check with one message: the first `[ERROR]` line after the `T E S T S` line of the module that hit it first (`api-tests` or `ui-tests` — both check independently), starting `LAB PRE-FLIGHT FAILED:`. It names the address that was tried and how to start the lab, or says the access key was rejected. Zero checks run in that module and the build fails.
 
 **Caution — keep the key out of reports and logs.** A key passed as `-DapiToken=…` is ignored by the framework, but Surefire still records command-line system properties in its XML reports (`target/surefire-reports`), and `./mvnw -X` prints every environment variable, including `API_TOKEN`. Never share or attach such reports or debug logs (for example to CI). Use `-DbaseUrl` only for a non-secret address.
+
+**Screen checks.** `ui-tests` drives the lab through a real Chromium browser with Playwright. It needs the same running lab as the checks above, plus a one-time browser install.
+
+**One-time browser install.** Playwright's browsers are not downloaded automatically before a run — the first test would otherwise silently pull in every browser (about 1 GB) and can time out doing it. Install Chromium once, from the repository root:
+
+```bash
+./mvnw -N exec:java
+```
+
+This runs Playwright's own CLI (`install chromium`) as a Maven plugin dependency, not a project dependency, so it needs no reactor build and no Node.js toolchain. It is safe to re-run: it reports Chromium as already installed. On Linux CI, ask for the OS libraries Chromium needs too:
+
+```bash
+./mvnw -N exec:java -Dexec.args="install --with-deps chromium"
+```
+
+**Running the screen checks.**
+
+```bash
+# only the screen checks, plus the framework's quick self-checks (common, api-client)
+./mvnw -pl ui-tests -am test
+
+# everything: API checks and screen checks together
+./mvnw clean test
+```
+
+`./mvnw clean test` now includes `ui-tests` in the reactor. If the API checks fail, add `-fae` ("fail at end") so the build still runs `ui-tests` and reports both verdicts in one run, instead of stopping at the first red module:
+
+```bash
+./mvnw clean test -fae
+```
+
+**Watching a run.** Screen checks run headless by default:
+
+```bash
+./mvnw -pl ui-tests -am test -Dheaded=true -DslowMo=250
+```
+
+`-Dheaded=true` shows the Chromium window instead of running it headless; `-DslowMo=<ms>` slows every action down so it is easier to follow.
+
+**Investigating a failure.** A failing check saves a screenshot and a Playwright trace, named after its scenario; a passing check keeps nothing:
+
+```text
+ui-tests/target/ui-failures/<TestClass>/<scenario>/screenshot.png
+ui-tests/target/ui-failures/<TestClass>/<scenario>/trace.zip
+```
+
+Both live under `target/`, so `./mvnw clean` removes them. Open a saved trace with the same plugin used for the browser install, or by dragging the file onto [trace.playwright.dev](https://trace.playwright.dev), which runs entirely in the browser:
+
+```bash
+./mvnw -N exec:java -Dexec.args="show-trace ui-tests/target/ui-failures/<TestClass>/<scenario>/trace.zip"
+```
+
+Sign-in is kept out of every trace on purpose: recording pauses while the real password is typed and submitted, so the lab's password never lands in a screenshot, a trace, or any other output.

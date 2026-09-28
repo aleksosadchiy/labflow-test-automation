@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.labflow</groupId>
+        <artifactId>lab-test-automation</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ui-tests</artifactId>
+    <name>ui-tests</name>
+    <description>The lab's screen checks through a real browser: Page Objects in main code, checks in test code.</description>
+
+    <!--
+        Whole-run backstop against a hang (spec 004, Slice 8). Two layers of time limit:
+        - junit-platform.properties sets a per-test JUnit limit of 2 min. A stuck check then fails
+          under its own [Scenario: ...] name, and the run moves on to the next check.
+        - This setting is Surefire's forkedProcessTimeoutInSeconds, 10 min. The JUnit limit does not
+          reach code in extension callbacks: the browser launch, newContext, tracing and close in
+          BrowserExtension. If the forked test JVM gets stuck there, or anywhere else, Surefire
+          kills the JVM and fails the build ("There was a timeout in the fork"). A local run or a
+          CI job therefore ends within about 10 minutes instead of hanging for hours.
+        Set as the property Surefire reads (surefire.timeout), not in the plugin <configuration>.
+        A value in <configuration> would ignore the command line (checked with -X). This way
+        -Dsurefire.timeout=<seconds> still overrides it. It also leaves the root's
+        pluginManagement configuration (the phrased-name reporters) inherited untouched.
+    -->
+    <properties>
+        <surefire.timeout>600</surefire.timeout>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.labflow</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <!-- Used by the checks to set up data over the API before driving the screens. -->
+        <dependency>
+            <groupId>com.labflow</groupId>
+            <artifactId>api-client</artifactId>
+        </dependency>
+        <!-- Compile scope: the Page Objects in src/main use it. Version comes from the root. -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Needed to compile the pre-flight listener; the version comes from the JUnit BOM. -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Test-only, added during Slice 9 (Feature Testing & Regression): lets
+            BrowserExtensionArtifactsTest run a couple of throwaway probe checks through the real
+            JupiterTestEngine, in-process, to prove BrowserExtension's failure-artifact behaviour
+            (FS 2.9 ¶2 and ¶4) without going through a forked Maven run. Version comes from the
+            root's junit-bom import, same as junit-jupiter above.
+        -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-testkit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>
