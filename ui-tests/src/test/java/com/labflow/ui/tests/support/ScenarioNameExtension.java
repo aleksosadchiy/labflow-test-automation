@@ -5,6 +5,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 import org.opentest4j.AssertionFailedError;
 
+import java.util.concurrent.TimeoutException;
+
 /**
  * Copied from {@code api-tests}' {@code com.labflow.tests.support.ScenarioNameExtension} (about
  * 30 lines), not moved: moving it into {@code common/src/main} would put a JUnit dependency onto
@@ -21,7 +23,15 @@ import org.opentest4j.AssertionFailedError;
  * resolved, because the expected screen never appeared. An API check has no such failure mode,
  * so the original only ever touches {@link AssertionError}s. Here, a {@link PlaywrightException}
  * gets the same {@code [Scenario: ...]} prefix, so a check that fails before ever reaching an
- * assertion still names its scenario (FS 2.9 ¶1). Everything else is rethrown unchanged.
+ * assertion still names its scenario (FS 2.9 ¶1).
+ *
+ * <p><b>Added for the per-check time limit (spec 004, Slice 8):</b> when a check runs past
+ * {@code junit.jupiter.execution.timeout.default} (see {@code junit-platform.properties}),
+ * JUnit's own {@code TimeoutExtension} throws a plain {@link TimeoutException} — it has no
+ * scenario of its own to attach, and unlike an {@link AssertionError} it is not something this
+ * class can safely re-wrap as the same type (there is no "scenario-named timeout" type in
+ * {@code java.util.concurrent}), so it is wrapped as a {@link ScenarioTimeoutException} instead,
+ * with the original kept as its cause. Everything else is rethrown unchanged.
  *
  * <p>Registered on {@link UiTest} with {@code @ExtendWith}.
  */
@@ -35,7 +45,21 @@ public class ScenarioNameExtension implements TestExecutionExceptionHandler {
         if (throwable instanceof PlaywrightException) {
             throw new PlaywrightException(scenarioMessage(context, throwable), throwable);
         }
+        if (throwable instanceof TimeoutException) {
+            throw new ScenarioTimeoutException(scenarioMessage(context, throwable), throwable);
+        }
         throw throwable;
+    }
+
+    /**
+     * A {@link TimeoutException} carries no scenario name of its own; this wraps one with the
+     * same {@code [Scenario: ...]} prefix the other failure types get, keeping the original
+     * {@link TimeoutException} as its cause so the real elapsed-time message is still visible.
+     */
+    public static final class ScenarioTimeoutException extends RuntimeException {
+        ScenarioTimeoutException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     /**

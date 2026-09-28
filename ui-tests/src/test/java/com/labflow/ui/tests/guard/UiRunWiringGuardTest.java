@@ -13,8 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.launcher.LauncherSessionListener;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 import java.util.ServiceLoader;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,6 +66,23 @@ class UiRunWiringGuardTest {
                     .as("%s extends the shared base class of the screen checks", check.getSimpleName())
                     .isTrue();
         }
+    }
+
+    @Test
+    @DisplayName("Every screen check has a per-test time limit, so a stuck check fails instead of hanging the run (spec 004, Slice 8)")
+    void everyCheckHasAPerTestTimeLimit() throws IOException {
+        Properties junit = new Properties();
+        try (InputStream in = UiRunWiringGuardTest.class.getResourceAsStream("/junit-platform.properties")) {
+            assertThat(in).as("the run's JUnit settings file, junit-platform.properties").isNotNull();
+            junit.load(in);
+        }
+
+        assertThat(junit.getProperty("junit.jupiter.execution.timeout.default"))
+                .as("the per-test time limit that keeps a stuck check from hanging the run")
+                .isNotBlank();
+        assertThat(junit.getProperty("junit.jupiter.execution.timeout.thread.mode.default"))
+                .as("the thread mode for that time limit, deliberately SEPARATE_THREAD so the run always continues past the limit")
+                .isEqualTo("SEPARATE_THREAD");
     }
 
     /** {@code .../tests/rejection/FooTest.java} names the class {@code com.labflow.ui.tests.rejection.FooTest}. */

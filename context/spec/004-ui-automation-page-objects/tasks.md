@@ -253,7 +253,30 @@ After each slice, the project still builds and runs with `./mvnw` from the repos
     
     **[Agent: testing-expert]**
 
-- [ ] **Slice 8: Feature Testing & Regression**
+- [x] **Slice 8: A Screen-Check Run Never Hangs**
+
+  > _(Added after Slice 7: two runs stalled for about 15 minutes. The first was a whole run during Slice 6. The second was `SignInTest` in headed mode, which took 905 s. Every Playwright wait is capped at 30 s, so the stall sits in an unbounded call.)_ Find the cause, and make sure a stuck check fails quickly with its scenario name instead of blocking the run. (FS §2.1, §2.8 ¶3–4, §2.9 ¶1)
+
+  - [x] Task: Reproduce and diagnose.
+    - Run `SignInTest` and the full `ui-tests` module repeatedly, at least 10 runs each, headless and headed, with per-phase timestamps: browser launch, context creation, tracing start, sign-in including the `RecordingPause` stop and start, afterEach capture and close, and JVM exit.
+    - Run every Maven command with a time bound. On any stall, capture `jstack` of the forked Surefire JVM and the Playwright driver's state (`DEBUG=pw:api` if useful).
+    - Fix the root cause in test-side or `ui-tests/src/main` code. If it cannot be reproduced, say so with the numbers and still do the next task.
+    
+    **[Agent: testing-expert]**
+  - [x] Task: Guard against any future hang. Give every screen check a per-test time limit, e.g. `junit.jupiter.execution.timeout.default` in `ui-tests/src/test/resources/junit-platform.properties`, sized generously above the slowest check. A check that exceeds it must fail with its `[Scenario: …]` name, and the run must continue with the next check.
+
+    Prove this with RED validation: a temporary unbounded wait in one check makes it fail at the limit with its scenario name, and the other checks still run. Then restore it exactly. **[Agent: testing-expert]**
+  - [x] Task: _(Added after Task 2 found that JUnit's timeout does not reach extension callbacks, where the Playwright calls without a timeout live: launch, `newContext`, tracing, `close`.)_ Add a whole-run backstop to `ui-tests/pom.xml`: Surefire `forkedProcessTimeoutInSeconds=600`, with a comment explaining the layering. The per-test JUnit limit (2 min) turns a stuck check into a named failure. The fork limit (10 min) kills a JVM stuck anywhere else, so a CI job can never hang for hours.
+
+    Prove it with RED validation: temporarily lower the limit, e.g. `-Dsurefire.timeout=20`, and put an unbounded wait in `BrowserExtension.beforeEach`. The build must end within the limit with Surefire's fork-timeout message. Then restore both exactly. **[Agent: github-actions-cicd]**
+  - [x] Verify: With the lab on 18080:
+    - Run `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080` five times in a row, plus one headed run. Quote each wall time. No run may exceed a few minutes.
+    - Full `./mvnw clean test` is green.
+    - Delete temp output.
+    
+    **[Agent: testing-expert]**
+
+- [ ] **Slice 9: Feature Testing & Regression**
 
   > Verifies the whole feature end-to-end against functional-spec.md, run after all implementation slices are complete.
   - [ ] Read functional-spec.md acceptance criteria in full. Generate acceptance-level tests that verify the entire feature as a whole — not individual slices. Cover applicable layers (unit for pure logic, integration for service interactions, e2e for user flows) based on the project's testing stack. Write tests with RED validation (must fail before implementation is confirmed done). Annotate each test with `@spec: 004-ui-automation-page-objects` and `@regression` if suitable for long-term regression. **[Agent: testing-expert]**
