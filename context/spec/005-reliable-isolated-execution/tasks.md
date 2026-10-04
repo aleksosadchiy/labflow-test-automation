@@ -26,7 +26,7 @@ After each slice:
   - Run long Maven or Playwright commands in the background with an explicit wall-clock limit, for example `( cmd ) & pid=$!; ( sleep 900; kill $pid ) &`, or use the tool's own timeout.
   - Never leave a run hanging.
   - Delete only the scratch files you created yourself.
-- **Browsers.** Chromium for Playwright 1.63.0 is already installed. Firefox and WebKit are installed in Slice 1 with `./mvnw -N exec:java -Dexec.args="install firefox webkit"`.
+- **Browsers.** Chromium for Playwright 1.63.0 is already installed. WebKit is installed in Slice 1 with `./mvnw -N exec:java -Dexec.args="install webkit"`. Firefox is not supported (it does not start on this macOS 27 machine; see the FS Change Log).
 - **Agent split** (same rule as specs 003 and 004):
   - `general-purpose` writes new main code (`common`, `test-data`, `api-client`, `ui-tests/src/main`), together with its unit tests, proven by RED validation.
   - `testing-expert` writes the checks, test-side support, guards and every Verify task.
@@ -43,35 +43,36 @@ After each slice:
 
 ---
 
-- [ ] **Slice 1: Choose Environment and Browser from Outside, with a Run Banner**
+- [x] **Slice 1: Choose Environment and Browser from Outside, with a Run Banner**
 
-  > A run can be pointed at the `local` or `ci` environment and run its screen checks in Chromium, Firefox or WebKit without editing anything. Every run logs one settings banner with the key hidden. Unknown values stop the run before any check. (FS §2.5)
+  > A run can be pointed at the `local` or `ci` environment and run its screen checks in Chromium or WebKit without editing anything. Every run logs one settings banner with the key hidden. Unknown values stop the run before any check. (FS §2.5)
 
-  - [ ] Task: Root `pom.xml`: manage `slf4j-api` (2.0.x) and `logback-classic` (latest 1.5.x on Maven Central; record the version chosen). Add `slf4j-api` (compile) to `common`. Add `logback-classic` (test) to `api-tests` and `ui-tests`, each with a minimal `src/test/resources/logback-test.xml` (console, INFO, pattern `%d{HH:mm:ss.SSS} [%thread] %msg%n`). Add `logback-classic` (test) to `common` and `api-client` with a WARN-only console config, so no "no SLF4J provider" warning appears. Leave the Surefire reporter block untouched. Install Firefox and WebKit once with `./mvnw -N exec:java -Dexec.args="install firefox webkit"`. **[Agent: github-actions-cicd]**
-  - [ ] Task: Add the environment to the settings.
+  - [x] Task: Root `pom.xml`: manage `slf4j-api` (2.0.x) and `logback-classic` (latest 1.5.x on Maven Central; record the version chosen). Add `slf4j-api` (compile) to `common`. Add `logback-classic` (test) to `api-tests` and `ui-tests`, each with a minimal `src/test/resources/logback-test.xml` (console, INFO, pattern `%d{HH:mm:ss.SSS} [%thread] %msg%n`). Add `logback-classic` (test) to `common` and `api-client` with a WARN-only console config, so no "no SLF4J provider" warning appears. Leave the Surefire reporter block untouched. Install Firefox and WebKit once with `./mvnw -N exec:java -Dexec.args="install firefox webkit"`. **[Agent: github-actions-cicd]**
+  - [x] Task: Add the environment to the settings.
     - `common/.../config/LabEnvironment` enum: `LOCAL` and `CI`, each with a default address (both `http://localhost:8080`), parsed case-insensitively.
     - `LabConfig` becomes `(baseUrl, apiKey, environment)`. The environment comes from `-Denvironment`, then `ENVIRONMENT`, then `local`; blank counts as unset. The address comes from `-DbaseUrl`, then `BASE_URL`, then the environment's default.
     - An unknown environment throws `Unknown environment 'x'. Known: local, ci`. `toString()` still masks the key.
     - Extend `LabConfigTest`: precedence, explicit address beats environment, unknown value message.
     - RED-validate.
     - **[Agent: general-purpose]**
-  - [ ] Task: Add the browser choice to the screen checks.
-    - `ui-tests/src/main/.../config/BrowserChoice` enum: `CHROMIUM`, `FIREFOX`, `WEBKIT`. It is loaded from `-Dbrowser`, then `BROWSER`, then `chromium`, case-insensitively.
-    - An unknown value throws `Unsupported browser 'x'. Supported: chromium, firefox, webkit`.
+  - [x] Task: Add the browser choice to the screen checks.
+    - `ui-tests/src/main/.../config/BrowserChoice` enum: `CHROMIUM`, `WEBKIT` (`FIREFOX` was built first, then removed, see the FS Change Log). It is loaded from `-Dbrowser`, then `BROWSER`, then `chromium`, case-insensitively.
+    - An unknown value throws `Unsupported browser 'x'. Supported: chromium, webkit`.
     - Unit tests plus RED validation.
     - `BrowserExtension` launches the chosen type. The launch-failure message names that browser and its install command.
     - **[Agent: general-purpose]**
-  - [ ] Task: Validate the settings and log the banner in the pre-flight listeners.
+  - [x] Task: Remove Firefox (FS Change Log 2026-10-04). Drop `FIREFOX` from `BrowserChoice` and its `switch` case in `BrowserExtension`. The unknown-value message becomes `Unsupported browser 'x'. Supported: chromium, webkit`, and `-Dbrowser=firefox` is now rejected with that message. Update `BrowserChoiceTest` and any Javadoc. RED-validate the rejection of `firefox`. **[Agent: general-purpose]**
+  - [x] Task: Validate the settings and log the banner in the pre-flight listeners.
     - `LabPreflightListener` and `UiPreflightListener` resolve and validate the settings first, so a bad value stops the run before any check.
     - They then log one INFO line through SLF4J: `Lab run: environment=<e> address=<url> key=*** [browser=<b>]` (the browser only in ui-tests).
     - After that they probe the lab as today.
     - Update `LabRunWiringTest` / `UiRunWiringGuardTest` if they assert on listener behaviour.
     - **[Agent: testing-expert]**
-  - [ ] Verify:
+  - [x] Verify:
     - Start the lab on 18080.
     - (a) Run `./mvnw -pl api-tests -am test -DbaseUrl=http://localhost:18080 -Denvironment=ci`. Expect green, and quote the banner showing `environment=ci` and `key=***`.
     - (b) Run with `-Denvironment=nope` and with `-Dbrowser=opera` (ui-tests). Each must stop before any check with the exact message.
-    - (c) Run `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080` once with each of `-Dbrowser=firefox` and `-Dbrowser=webkit`. Expect all screen checks green; quote the `Tests run` lines.
+    - (c) Run `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080` once with `-Dbrowser=webkit`. Expect all screen checks green; quote the `Tests run` lines.
     - (d) Grep the console output and `surefire-reports` for `mock-lab-local-token`: 0 hits.
     - Stop the lab and delete scratch files.
     - **[Agent: testing-expert]**
@@ -282,7 +283,7 @@ After each slice:
     - A labels table with the four subset commands, quoted.
     - The "0 checks ran" note.
     - Settings table rows for `ENVIRONMENT`/`-Denvironment`, `BROWSER`/`-Dbrowser` (with the Codespaces `BROWSER` note), `-DchecksAtOnce` (with the advice to lower it on small machines) and `-DlogBodies`.
-    - The Firefox/WebKit install command.
+    - The WebKit install command, and a note that Firefox is not supported and why.
     - A "Run log" paragraph: where the files are, what is and is not logged, and how to find a failing check's lines.
     - The measured times table.
     - Keep the existing sections intact.
@@ -295,6 +296,7 @@ After each slice:
     - per-thread browsers;
     - `BROWSER`/`ENVIRONMENT`;
     - the run log.
+    - Fix the `<description>` in `common/pom.xml`, which still says it has no third-party runtime dependencies (it now has `slf4j-api`), and the matching line in `technical-considerations.md` §2.1.
     - Tick Phase 2 "Reliable, Isolated Test Execution" and "Configuration & Logging" in `roadmap.md`.
     - **[Agent: general-purpose]**
   - [ ] Verify:

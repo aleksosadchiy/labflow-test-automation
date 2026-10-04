@@ -6,6 +6,7 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Tracing;
+import com.labflow.ui.config.BrowserChoice;
 import com.labflow.ui.recording.TraceSettings;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -23,7 +24,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 /**
  * Owns the browser lifecycle for every screen check.
  *
- * <p>One {@link Playwright} driver and one Chromium {@link Browser} are created lazily, the
+ * <p>One {@link Playwright} driver and one {@link Browser} of the chosen type ({@link BrowserChoice}:
+ * {@code -Dbrowser}, then {@code BROWSER}, then Chromium) are created lazily, the
  * first time any test needs them, and stored in the <b>root</b> {@link ExtensionContext.Store}
  * as a {@link ExtensionContext.Store.CloseableResource}. JUnit closes that resource itself once
  * the whole test run ends, so there is no {@code @BeforeAll}/{@code @AfterAll} to write and no
@@ -218,25 +220,33 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
     }
 
     private static SharedBrowser launchSharedBrowser() {
+        BrowserChoice choice = BrowserChoice.fromEnvironment();
         Playwright playwright = Playwright.create();
         try {
             boolean headless = !Boolean.getBoolean("headed");
             double slowMo = Double.parseDouble(System.getProperty("slowMo", "0"));
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+            Browser browser = browserType(playwright, choice).launch(new BrowserType.LaunchOptions()
                     .setHeadless(headless)
                     .setSlowMo(slowMo));
             return new SharedBrowser(playwright, browser);
         } catch (RuntimeException launchFailure) {
             playwright.close();
             throw new IllegalStateException(
-                    "Chromium failed to launch. If the browser binaries are missing, install them once with "
-                            + "'./mvnw -N exec:java' from the repository root, then re-run the checks.",
+                    choice + " failed to launch. If the browser binaries are missing, install them once with '"
+                            + choice.installCommand() + "' from the repository root, then re-run the checks.",
                     launchFailure);
         }
     }
 
+    private static BrowserType browserType(Playwright playwright, BrowserChoice choice) {
+        return switch (choice) {
+            case CHROMIUM -> playwright.chromium();
+            case WEBKIT -> playwright.webkit();
+        };
+    }
+
     /**
-     * Holds the run-scoped Playwright driver and Chromium browser, closed together at the end of
+     * Holds the run-scoped Playwright driver and browser, closed together at the end of
      * the run. Implements both {@link ExtensionContext.Store.CloseableResource} (what the Store
      * requires) and {@link AutoCloseable} (what newer JUnit Platform versions prefer), so nothing
      * is logged about the older interface being used on its own.

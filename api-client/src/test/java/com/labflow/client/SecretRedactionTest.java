@@ -7,6 +7,7 @@ import com.labflow.client.http.LabRequestSpecs;
 import com.labflow.client.support.StubLab;
 import com.labflow.common.config.ApiKey;
 import com.labflow.common.config.LabConfig;
+import com.labflow.common.config.LabEnvironment;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -94,7 +95,7 @@ class SecretRedactionTest {
     // @regression
     @DisplayName("The client, its configuration and the key print as *** and never as the key")
     void printedFormsNeverContainTheKey() {
-        LabConfig config = new LabConfig(lab.baseUrl(), new ApiKey(SECRET));
+        LabConfig config = new LabConfig(lab.baseUrl(), new ApiKey(SECRET), LabEnvironment.LOCAL);
         LabClient client = LabClient.create(config);
 
         assertThat(new ApiKey(SECRET).toString()).isEqualTo("***");
@@ -108,7 +109,7 @@ class SecretRedactionTest {
     // @regression
     @DisplayName("A client without a key says so, and there is no key to show")
     void clientWithoutKeyPrintsNoKey() {
-        LabClient client = LabClient.create(new LabConfig(lab.baseUrl(), new ApiKey(SECRET)));
+        LabClient client = LabClient.create(new LabConfig(lab.baseUrl(), new ApiKey(SECRET), LabEnvironment.LOCAL));
 
         assertThat(client.withoutApiKey().toString()).doesNotContain(SECRET).doesNotContain("***").contains("none");
     }

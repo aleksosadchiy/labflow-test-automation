@@ -8,6 +8,7 @@ import com.labflow.client.support.StubLab;
 import com.labflow.common.LabMessages;
 import com.labflow.common.config.ApiKey;
 import com.labflow.common.config.LabConfig;
+import com.labflow.common.config.LabEnvironment;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Sample;
 import org.junit.jupiter.api.AfterEach;
@@ -42,7 +43,7 @@ class AttemptRequestLevelServicesTest {
     @BeforeEach
     void startLab() {
         lab = StubLab.start();
-        client = LabClient.create(new LabConfig(lab.baseUrl(), new ApiKey(KEY)));
+        client = LabClient.create(new LabConfig(lab.baseUrl(), new ApiKey(KEY), LabEnvironment.LOCAL));
     }
 
     @AfterEach

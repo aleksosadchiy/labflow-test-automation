@@ -74,7 +74,7 @@ Success is measured by four things:
 - **As an** engineer, **I want** to choose the lab address, access key, browser and environment when I start a run, **so that** the same project works on my machine, in the pipeline and against another lab without edits.
   - **Acceptance Criteria:**
     - [ ] When the engineer starts a run without any settings, then the run uses the lab's standard local address, its documented local key, the default browser and the "local" environment, and the run passes against a locally started lab.
-    - [ ] When the engineer sets the browser to any of the supported browsers, then the screen checks run in that browser and pass. The supported browsers are Chromium (the default), Firefox and WebKit; each extra browser is obtained with one documented, one-time setup command.
+    - [ ] When the engineer sets the browser to any of the supported browsers, then the screen checks run in that browser and pass. The supported browsers are Chromium (the default) and WebKit; the extra browser is obtained with one documented, one-time setup command.
     - [ ] When the engineer sets a browser name that is not supported, then the run stops before any check with a message naming the value given and listing the supported names.
     - [ ] When the engineer sets the environment name, then the run uses that environment's lab address unless an address is given explicitly, in which case the explicit address wins. The known environments are "local" (the default) and "ci"; an environment supplies only a default lab address and its name in the run output, and nothing else differs between them.
     - [ ] When the engineer sets an environment name that is not known, then the run stops before any check with a message naming the value given and listing the known names.
@@ -123,4 +123,4 @@ Success is measured by four things:
 
 _Dated amendments made after the spec was first written — typically by `/awos:spec` in Update Mode when a bug fix changed documented behavior. Each entry records the date, the source reference (bug id or fix description), and what behavior changed and why. Leave empty until the first amendment._
 
-- [YYYY-MM-DD] — [source reference] — [what behavior changed and why]
+- 2026-10-04 — Slice 1, Task 3 finding — Firefox removed from the supported browsers. Playwright's Firefox build (155.0) exits at start-up on this development machine (macOS 27) with "Could not find profile folder", even when started directly without the framework. The engineer chose to support Chromium and WebKit only rather than keep a browser that cannot be proven here.

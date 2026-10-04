@@ -14,7 +14,7 @@ Everything stays inside the existing Maven reactor and the JUnit 5 Platform. No 
 2. **Parallelism** uses JUnit's own parallel engine: classes and methods run concurrently in one forked JVM. A tiny custom strategy reads one option, `-DchecksAtOnce=N`, and defaults to the number of cores.
 3. **Screen checks under parallel** get **one Playwright + Browser per worker thread**, instead of today's single shared one, because Playwright for Java is not thread-safe per `Playwright` instance. Each check still gets its own `BrowserContext` + `Page`.
 4. **Test data** moves to a new **`test-data`** module of pure value recipes (no HTTP). It replaces both `UniqueData` copies and gives every generated name a fixed `TEST-` prefix.
-5. **Settings**: `LabConfig` gains `ENVIRONMENT` (`local`|`ci`, which supplies only the default address). `ui-tests` gains `BROWSER` (`chromium`|`firefox`|`webkit`). Both use the existing precedence rule (`-D` property, then env var, then default) and are validated in the existing pre-flight listener, so a bad value stops the run before any check.
+5. **Settings**: `LabConfig` gains `ENVIRONMENT` (`local`|`ci`, which supplies only the default address). `ui-tests` gains `BROWSER` (`chromium`|`webkit`). Both use the existing precedence rule (`-D` property, then env var, then default) and are validated in the existing pre-flight listener, so a bad value stops the run before any check.
 6. **Run log**: SLF4J + Logback, as already chosen in `architecture.md`.
    - A RestAssured `Filter` in `api-client` writes one summary line per request: method, path, status, duration and identifiers. It never writes the access key, the password or patient names.
    - The check name comes from MDC. Output goes to the console at INFO and to `target/logs/<module>.log` at DEBUG.
@@ -134,11 +134,12 @@ The changes are in `ui-tests/.../support/BrowserExtension.java`:
   - The check body runs on a helper thread while the worker thread blocks waiting for it. So each `Playwright` is still used by one thread at a time. This is the same arrangement spec 004 already runs green.
   - A check abandoned at its 2-minute limit can still touch its own thread's handle. That noise is now limited to the one worker thread instead of the whole run.
 - **Browser choice:**
-  - Enum `BrowserChoice { CHROMIUM, FIREFOX, WEBKIT }` in `ui-tests/.../config/`, loaded case-insensitively from `-Dbrowser`, then `BROWSER`, then `chromium`.
-  - `BrowserExtension` maps it to `playwright.chromium()` / `.firefox()` / `.webkit()`.
-  - An unknown value throws `Unsupported browser 'x'. Supported: chromium, firefox, webkit` from `UiPreflightListener`, before any check.
+  - Enum `BrowserChoice { CHROMIUM, WEBKIT }` in `ui-tests/.../config/`, loaded case-insensitively from `-Dbrowser`, then `BROWSER`, then `chromium`.
+  - `BrowserExtension` maps it to `playwright.chromium()` / `.webkit()`.
+  - An unknown value throws `Unsupported browser 'x'. Supported: chromium, webkit` from `UiPreflightListener`, before any check.
   - The launch-failure message names the chosen browser and its install command.
-- **Install:** `./mvnw -N exec:java -Dexec.args="install firefox webkit"` once, and on Linux `--with-deps`. The default `install chromium` is unchanged.
+- **Firefox is not supported** (FS Change Log 2026-10-04): Playwright's Firefox 155.0 does not start on macOS 27 ("Could not find profile folder"), even outside the framework.
+- **Install:** `./mvnw -N exec:java -Dexec.args="install webkit"` once, and on Linux `--with-deps`. The default `install chromium` is unchanged.
 - **Failure artifacts** become `target/ui-failures/<browser>/<TestClass>/<scenario>/`. Names are unique per check already (class + display name + row index), so parallel runs cannot collide. `ArtifactNamesTest` and `BrowserExtensionArtifactsTest` are updated for the extra level.
 
 ### 2.6. Test-Data Recipes (Functional §2.4)
@@ -252,5 +253,5 @@ The changes are in `ui-tests/.../support/BrowserExtension.java`:
   2. Run `./mvnw test -Dgroups=regression` three times in a row on one lab with the default settings: all green.
   3. Timing: one warm-up run, then the median of 3 for the default and for `-DchecksAtOnce=1`, using Maven's `Total time:` line. Record the core count. Time smoke the same way to check it is under a third of regression.
   4. Concurrency cap: with `-DchecksAtOnce=2`, the distinct `[thread]` names on check lines in `target/logs/*.log` number at most 2. With the default, there is more than 1.
-  5. Run `-Dbrowser=firefox` and `-Dbrowser=webkit` once each, all screen checks green. Check the unknown browser and unknown environment messages.
+  5. Run `-Dbrowser=webkit` once, all screen checks green. Check the unknown browser and unknown environment messages.
   6. After a `-DlogBodies=true` full run, grep for the key, the password and every `TEST-patient-` name across `target/logs`, `target/surefire-reports` and console output: 0 hits.

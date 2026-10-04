@@ -6,6 +6,7 @@ package com.labflow.client.preflight;
 import com.labflow.client.support.StubLab;
 import com.labflow.common.config.ApiKey;
 import com.labflow.common.config.LabConfig;
+import com.labflow.common.config.LabEnvironment;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +50,7 @@ class LabPreflightTest {
     }
 
     private LabConfig config(String baseUrl) {
-        return new LabConfig(baseUrl, new ApiKey(KEY));
+        return new LabConfig(baseUrl, new ApiKey(KEY), LabEnvironment.LOCAL);
     }
 
     private void healthy() {
