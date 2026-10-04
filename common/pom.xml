@@ -33,6 +33,12 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Runs throwaway probe checks through the real Jupiter engine (CheckNameInterceptorTest). -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-testkit</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Logging implementation for this module's own tests; config in src/test/resources/logback-test.xml. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>

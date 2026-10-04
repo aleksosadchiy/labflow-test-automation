@@ -3,6 +3,7 @@ package com.labflow.ui.tests.support;
 import com.microsoft.playwright.Page;
 import com.labflow.client.LabClient;
 import com.labflow.common.config.LabConfig;
+import com.labflow.common.junit.CheckNameInterceptor;
 import com.labflow.common.junit.Regression;
 import com.labflow.common.junit.UiCheck;
 import com.labflow.common.model.Patient;
@@ -25,7 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  */
 @UiCheck
 @Regression
-@ExtendWith({ScenarioNameExtension.class, BrowserExtension.class})
+@ExtendWith({ScenarioNameExtension.class, BrowserExtension.class, CheckNameInterceptor.class})
 public abstract class UiTest {
 
     protected final LabConfig config = LabConfig.fromEnvironment();

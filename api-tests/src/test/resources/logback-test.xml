@@ -1,12 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Run log for the checks: INFO and above to the console. -->
+<!--
+  Run log for the checks.
+  - Console: INFO and above, one short line per request. The check name comes from the MDC key
+    "check" (set by CheckNameInterceptor), so every line says which check it belongs to.
+  - File target/logs/api-tests.log: everything at DEBUG from our own loggers (lab.http), rewritten
+    on every run (append=false) and removed by "clean". The path is relative because Surefire runs
+    with the module as its working directory.
+  Only the "lab.http" logger is lowered to DEBUG (masked bodies, when -DlogBodies=true). The root
+  stays at INFO so RestAssured, Apache HttpClient and Playwright cannot flood the file with
+  their own DEBUG output.
+-->
 <configuration>
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %X{check} %msg%n</pattern>
         </encoder>
     </appender>
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>target/logs/api-tests.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %X{check} %msg%n</pattern>
+        </encoder>
+    </appender>
+    <logger name="lab.http" level="DEBUG"/>
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
     </root>
 </configuration>

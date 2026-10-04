@@ -170,11 +170,11 @@ After each slice:
     - Stop the lab.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 5: A Run Log That Is Safe to Share**
+- [x] **Slice 5: A Run Log That Is Safe to Share**
 
   > Every request a check makes to the lab is logged as one line: the check name, method, path, status, duration and identifiers. The full log goes to `target/logs/<module>.log`. `-DlogBodies=true` adds masked bodies. The access key, the password and patient names never appear. (FS §2.6)
 
-  - [ ] Task: `api-client` main code.
+  - [x] Task: `api-client` main code.
     - `http/LogMasker`: a pure class. It replaces `name` and `password` values at any depth of a JSON body with `***`, and turns a non-JSON body into `<non-JSON body, N chars>`.
     - `http/RequestLogFilter`: a RestAssured `Filter` registered in `LabRequestSpecs.create`.
       - At INFO on logger `lab.http` it writes `METHOD path -> status in N ms [patient=… order=… sample=…]`. Identifiers come from the path and from the response JSON fields `id`/`patientId`/`orderId`/`sampleId`, never from `name`.
@@ -183,13 +183,13 @@ After each slice:
     - Unit tests against canned requests and responses. RED-validate.
     - Add `slf4j-api` (compile) to `api-client`.
     - **[Agent: general-purpose]**
-  - [ ] Task: Put the check name into every log line.
+  - [x] Task: Put the check name into every log line.
     - Write `common/.../junit/CheckNameInterceptor`, an `InvocationInterceptor`. Around the test-method, test-template-method, `beforeEach` and `afterEach` invocations it puts `check=<Class> › <display name>` into the MDC, and clears it afterwards.
     - Add `junit-jupiter-api` at provided scope if not already present.
     - Test with `junit-platform-testkit` that the MDC is set on the thread that actually runs the body under `junit.jupiter.execution.timeout.thread.mode.default=SEPARATE_THREAD`.
     - RED-validate.
     - **[Agent: general-purpose]**
-  - [ ] Task: Wire up the log in the test modules.
+  - [x] Task: Wire up the log in the test modules.
     - Register `CheckNameInterceptor` on `LabTest` and `UiTest`.
     - Extend both `logback-test.xml` files:
       - console at INFO, pattern `%d{HH:mm:ss.SSS} [%thread] %X{check} %msg%n`;
@@ -198,7 +198,7 @@ After each slice:
     - Add `RunLogSecrecyTest` (an `@ApiCheck`). It registers a recipe patient, places an order and registers a sample, then reads its module's log file. The file must contain the sample identifier and must contain neither the patient name nor the access key.
     - RED-validate both.
     - **[Agent: testing-expert]**
-  - [ ] Verify:
+  - [x] Verify:
     - Start the lab on 18080.
     - Run `./mvnw clean test -DbaseUrl=http://localhost:18080 -DlogBodies=true -fae`. Expect green.
     - Quote 3 representative lines from `api-tests/target/logs/api-tests.log`, each with a check name and identifiers, plus one masked body line.
