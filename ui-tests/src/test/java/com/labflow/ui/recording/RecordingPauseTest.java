@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,8 +37,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Playwright offers no "is tracing on" query, so the no-op detection relies on real driver
  * behaviour that only a real browser can pin down. No lab is needed; pages are inline HTML.
  *
+ * <p>{@link Isolated}: this class owns its own static Playwright, so when checks run side by
+ * side it runs alone, never beside a screen check or another class.
+ *
  * @spec: 004-ui-automation-page-objects
  */
+@Isolated
 class RecordingPauseTest {
 
     private static final String SECRET = "Rp_Secret_Value_7719";

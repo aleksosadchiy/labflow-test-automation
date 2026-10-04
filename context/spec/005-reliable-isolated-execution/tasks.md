@@ -239,11 +239,11 @@ After each slice:
     - Stop the lab.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 7: Screen Checks Run Side by Side, Each in Its Own Browser**
+- [x] **Slice 7: Screen Checks Run Side by Side, Each in Its Own Browser**
 
   > Screen checks also run concurrently. Every worker thread has its own Playwright and browser, and every check has its own window. Failure pictures and recordings stay separate per browser and per check. (FS §2.3, screen checks)
 
-  - [ ] Task: Change `BrowserExtension` to one Playwright per worker thread.
+  - [x] Task: Change `BrowserExtension` to one Playwright per worker thread.
     - Replace the single shared `Playwright` + `Browser` with one `BrowserHandle` (Playwright + Browser of the chosen type) per worker thread. It is held in a `ThreadLocal` and created lazily.
     - Register every handle in one root-store `CloseableResource` (a synchronized list), so all handles close once, after the last check.
     - Keep the fresh `BrowserContext` + `Page` per check, the tracing and the artifact rules.
@@ -251,13 +251,13 @@ After each slice:
     - Update `ArtifactNamesTest`, `BrowserExtensionArtifactsTest` and the README path.
     - Mark `RecordingPauseTest` `@Isolated` (it has its own static Playwright).
     - **[Agent: testing-expert]**
-  - [ ] Task: Enable the same parallel keys in `ui-tests/src/test/resources/junit-platform.properties`.
+  - [x] Task: Enable the same parallel keys in `ui-tests/src/test/resources/junit-platform.properties`.
     - Keep the random order and the 2-minute `SEPARATE_THREAD` timeout.
     - Update the comment there, which today warns about the single shared Playwright.
     - Extend the ui `CheckIndependenceGuardTest` to require the parallel keys.
     - If screen checks turn out flaky in repeated runs, apply the documented fallback (`mode.default=same_thread`, classes still concurrent) and record why.
     - **[Agent: testing-expert]**
-  - [ ] Verify:
+  - [x] Verify:
     - Start the lab on 18080.
     - Run `./mvnw -pl ui-tests -am test -DbaseUrl=http://localhost:18080 -Dgroups=ui` 3 times in a row on the same lab, all green.
     - Distinct `[thread]` names on check lines in `ui-tests/target/logs/ui-tests.log`: more than 1 by default, at most 2 with `-DchecksAtOnce=2`.

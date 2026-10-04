@@ -168,17 +168,17 @@ This runs Playwright's own CLI (`install chromium`) as a Maven plugin dependency
 
 `-Dheaded=true` shows the Chromium window instead of running it headless; `-DslowMo=<ms>` slows every action down so it is easier to follow.
 
-**Investigating a failure.** A failing check saves a screenshot and a Playwright trace, named after its scenario; a passing check keeps nothing:
+**Investigating a failure.** A failing check saves a screenshot and a Playwright trace, in a folder named after the browser (for example `chromium`) and its scenario; a passing check keeps nothing:
 
 ```text
-ui-tests/target/ui-failures/<TestClass>/<scenario>/screenshot.png
-ui-tests/target/ui-failures/<TestClass>/<scenario>/trace.zip
+ui-tests/target/ui-failures/<browser>/<TestClass>/<scenario>/screenshot.png
+ui-tests/target/ui-failures/<browser>/<TestClass>/<scenario>/trace.zip
 ```
 
 Both live under `target/`, so `./mvnw clean` removes them. Open a saved trace with the same plugin used for the browser install, or by dragging the file onto [trace.playwright.dev](https://trace.playwright.dev), which runs entirely in the browser:
 
 ```bash
-./mvnw -N exec:java -Dexec.args="show-trace ui-tests/target/ui-failures/<TestClass>/<scenario>/trace.zip"
+./mvnw -N exec:java -Dexec.args="show-trace ui-tests/target/ui-failures/<browser>/<TestClass>/<scenario>/trace.zip"
 ```
 
 Sign-in is kept out of every trace on purpose: recording pauses while the real password is typed and submitted, so the lab's password never lands in a screenshot, a trace, or any other output.

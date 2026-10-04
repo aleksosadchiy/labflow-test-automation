@@ -13,6 +13,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -20,24 +21,42 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Owns the browser lifecycle for every screen check.
  *
- * <p>One {@link Playwright} driver and one {@link Browser} of the chosen type ({@link BrowserChoice}:
- * {@code -Dbrowser}, then {@code BROWSER}, then Chromium) are created lazily, the
- * first time any test needs them, and stored in the <b>root</b> {@link ExtensionContext.Store}
- * as a {@link ExtensionContext.Store.CloseableResource}. JUnit closes that resource itself once
- * the whole test run ends, so there is no {@code @BeforeAll}/{@code @AfterAll} to write and no
- * static field to leak state between test classes. Creating the driver once per run also avoids
- * re-extracting the Node driver into {@code java.io.tmpdir} for every single test.
+ * <p><b>One browser per worker thread.</b> A {@link BrowserHandle} (one {@link Playwright} driver
+ * plus one {@link Browser} of the chosen type, {@link BrowserChoice}: {@code -Dbrowser}, then
+ * {@code BROWSER}, then Chromium) belongs to one JUnit worker thread. It is created lazily on that
+ * thread's first screen check ({@code beforeEach} runs on the worker thread), kept in a
+ * {@link ThreadLocal}, and reused by every later check that thread runs. So a run never has more
+ * browsers than it has worker threads ({@code checksAtOnce}), and a sequential run has exactly one.
+ * Every handle is also registered in one {@link Handles} object in the <b>root</b>
+ * {@link ExtensionContext.Store}; JUnit closes it once, after the last check, from whichever thread
+ * closes the root store, and it closes every handle (browser first, then Playwright), collecting
+ * failures instead of stopping at the first. There is no {@code @BeforeAll}/{@code @AfterAll} to
+ * write and no static field to leak state between test classes or between engine runs.
+ *
+ * <p><b>Why this shape.</b> Playwright for Java is not thread-safe <em>per Playwright instance</em>:
+ * two threads must not call into the same {@link Playwright} (or anything created from it) at the
+ * same time. One shared instance, the design before parallel execution, would break as soon as two
+ * checks run at once. The opposite extreme, a Playwright per check, is safe but starts a Node driver
+ * process for every check (about 1 to 2 seconds each), which would cancel the speed-up. One per
+ * worker thread is the middle: safe, and the driver start-up is paid at most once per thread.
+ *
+ * <p><b>The time limit does not break this.</b> The run uses {@code SEPARATE_THREAD} timeouts, so a
+ * check body runs on a helper thread while its worker thread blocks waiting for it. The worker does
+ * not run another check meanwhile (it blocks in the timeout's {@code Future.get}, not in a
+ * fork-join join, so it does not steal work), so each Playwright is still used by one thread at a
+ * time. A body abandoned at its time limit can still touch its own worker's handle, but that noise
+ * stays on that one worker instead of reaching the whole run.
  *
  * <p>Each test method then gets its own fresh {@link BrowserContext} (fixed 1280x800 viewport)
  * and {@link Page}, assigned directly to the {@link UiTest} instance's {@code page} field before
- * the test body runs, and closed again once it finishes. Tests never share cookies, local
- * storage or navigation history, and {@code Browser.newContext()} is safe to call concurrently,
- * so this is already shaped for parallel execution (a later spec) even though nothing here runs
- * in parallel yet.
+ * the test body runs, and closed again once it finishes. That fresh context is each check's own
+ * separate browser window: checks never share cookies, local storage or navigation history.
  *
  * <p>{@code headless} defaults to {@code true} ({@code -Dheaded=true} shows the browser window);
  * {@code slowMo} defaults to {@code 0} ({@code -DslowMo=<ms>} slows every action down, for
@@ -49,7 +68,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  * <ol>
  *   <li>if the test failed ({@link ExtensionContext#getExecutionException()} is present), save a
  *       screenshot and stop tracing to a {@code trace.zip}, both under a folder named after the
- *       scenario ({@link #ARTIFACTS_ROOT});</li>
+ *       browser and the scenario ({@link #ARTIFACTS_ROOT}{@code /<browser>/<TestClass>/<scenario>});</li>
  *   <li>otherwise, stop tracing with no path, which discards it;</li>
  *   <li>close the {@link BrowserContext}, whatever happened above.</li>
  * </ol>
@@ -61,7 +80,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public final class BrowserExtension implements BeforeEachCallback, AfterEachCallback {
 
     private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(BrowserExtension.class);
-    private static final String BROWSER_KEY = "sharedBrowser";
+    private static final String HANDLES_KEY = "browserHandles";
+    private static final Logger LOG = LoggerFactory.getLogger(BrowserExtension.class);
     private static final String CONTEXT_KEY = "browserContext";
 
     /**
@@ -69,7 +89,8 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
      * working directory: Surefire forks its JVM with the module directory (here, {@code
      * ui-tests}) as the working directory, so this resolves to {@code ui-tests/target/ui-failures}
      * without needing to know the module's location any other way. Under {@code target/}, so
-     * {@code clean} wipes it and it is already git-ignored.
+     * {@code clean} wipes it and it is already git-ignored. Below it, one folder per browser, so
+     * a run in another browser never overwrites this one's evidence.
      */
     private static final Path ARTIFACTS_ROOT = Path.of("target", "ui-failures");
 
@@ -83,7 +104,7 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
 
     @Override
     public void beforeEach(ExtensionContext context) {
-        Browser browser = sharedBrowser(context);
+        Browser browser = handles(context).handleForThisThread().browser;
         BrowserContext browserContext = browser.newContext(
                 new Browser.NewContextOptions().setViewportSize(1280, 800));
         context.getStore(NAMESPACE).put(CONTEXT_KEY, browserContext);
@@ -189,8 +210,8 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
     }
 
     /**
-     * {@code ui-tests/target/ui-failures/<TestClass simple name>/<sanitised display
-     * name>[-<invocation index>]}. Built only from the class name, the argument-free display
+     * {@code ui-tests/target/ui-failures/<browser>/<TestClass simple name>/<sanitised display
+     * name>[-<invocation index>]}. Built only from the browser's name, the class name, the argument-free display
      * name (see {@link ArtifactNames}), and, for a parameterized row, its plain invocation index
      * — never from parameter values, so the password can never end up in a path.
      */
@@ -210,16 +231,15 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
         if (isParameterizedInvocation) {
             leaf = leaf + "-" + invocation.group(1);
         }
-        return ARTIFACTS_ROOT.resolve(className).resolve(leaf);
+        return ARTIFACTS_ROOT.resolve(BrowserChoice.fromEnvironment().displayName()).resolve(className).resolve(leaf);
     }
 
-    private Browser sharedBrowser(ExtensionContext context) {
-        SharedBrowser shared = context.getRoot().getStore(NAMESPACE)
-                .getOrComputeIfAbsent(BROWSER_KEY, key -> launchSharedBrowser(), SharedBrowser.class);
-        return shared.browser;
+    private static Handles handles(ExtensionContext context) {
+        return context.getRoot().getStore(NAMESPACE)
+                .getOrComputeIfAbsent(HANDLES_KEY, key -> new Handles(), Handles.class);
     }
 
-    private static SharedBrowser launchSharedBrowser() {
+    private static BrowserHandle launch() {
         BrowserChoice choice = BrowserChoice.fromEnvironment();
         Playwright playwright = Playwright.create();
         try {
@@ -228,7 +248,8 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
             Browser browser = browserType(playwright, choice).launch(new BrowserType.LaunchOptions()
                     .setHeadless(headless)
                     .setSlowMo(slowMo));
-            return new SharedBrowser(playwright, browser);
+            LOG.info("Browser started for worker {}", Thread.currentThread().getName());
+            return new BrowserHandle(playwright, browser);
         } catch (RuntimeException launchFailure) {
             playwright.close();
             throw new IllegalStateException(
@@ -245,26 +266,71 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
         };
     }
 
-    /**
-     * Holds the run-scoped Playwright driver and browser, closed together at the end of
-     * the run. Implements both {@link ExtensionContext.Store.CloseableResource} (what the Store
-     * requires) and {@link AutoCloseable} (what newer JUnit Platform versions prefer), so nothing
-     * is logged about the older interface being used on its own.
-     */
-    @SuppressWarnings("deprecation")
-    private static final class SharedBrowser implements ExtensionContext.Store.CloseableResource, AutoCloseable {
+    /** One Playwright driver and its browser, used by one worker thread. */
+    private static final class BrowserHandle {
         private final Playwright playwright;
         private final Browser browser;
 
-        private SharedBrowser(Playwright playwright, Browser browser) {
+        private BrowserHandle(Playwright playwright, Browser browser) {
             this.playwright = playwright;
             this.browser = browser;
         }
 
+        /** Browser first, then the driver it runs under. */
+        private void close() {
+            try {
+                browser.close();
+            } finally {
+                playwright.close();
+            }
+        }
+    }
+
+    /**
+     * The run's browsers: the {@link ThreadLocal} that gives each worker thread its own handle, and
+     * the synchronized list that remembers every handle so all of them close once at the end of the
+     * run. Both live in this one object, which lives in the root store, so a new engine run gets
+     * fresh ones and a handle closed at the end of one run is never handed out by the next.
+     * Implements both {@link ExtensionContext.Store.CloseableResource} (what the Store requires)
+     * and {@link AutoCloseable} (what newer JUnit Platform versions prefer), so nothing is logged
+     * about the older interface being used on its own.
+     */
+    @SuppressWarnings("deprecation")
+    private static final class Handles implements ExtensionContext.Store.CloseableResource, AutoCloseable {
+        private final ThreadLocal<BrowserHandle> perThread = new ThreadLocal<>();
+        private final List<BrowserHandle> all = Collections.synchronizedList(new ArrayList<>());
+
+        private BrowserHandle handleForThisThread() {
+            BrowserHandle handle = perThread.get();
+            if (handle == null) {
+                handle = launch();
+                all.add(handle);
+                perThread.set(handle);
+            }
+            return handle;
+        }
+
         @Override
         public void close() {
-            browser.close();
-            playwright.close();
+            List<BrowserHandle> toClose;
+            synchronized (all) {
+                toClose = new ArrayList<>(all);
+                all.clear();
+            }
+            List<RuntimeException> failures = new ArrayList<>();
+            for (BrowserHandle handle : toClose) {
+                try {
+                    handle.close();
+                } catch (RuntimeException e) {
+                    failures.add(e);
+                }
+            }
+            if (!failures.isEmpty()) {
+                RuntimeException failure = new IllegalStateException(
+                        failures.size() + " of " + toClose.size() + " browsers did not close cleanly");
+                failures.forEach(failure::addSuppressed);
+                throw failure;
+            }
         }
     }
 }
