@@ -30,7 +30,7 @@ class FrameworkBoundaryGuardTest {
             "\"/" + "api");              // a URL path written out inside a check
     private static final List<String> PROCESS_STARTING = List.of(
             "Process" + "Builder",
-            "Runtime" + ".getRuntime");
+            "Runtime" + ".getRuntime().exec");   // not .availableProcessors(), which ChecksAtOnceStrategy needs
 
     // Maven runs the checks with the module directory (api-tests) as the working directory.
     private static final List<Path> FRAMEWORK_SOURCES = List.of(

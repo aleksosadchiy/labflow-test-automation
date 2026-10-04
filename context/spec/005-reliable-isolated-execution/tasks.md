@@ -212,25 +212,25 @@ After each slice:
     - Stop the lab and delete scratch files.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 6: Workflow Checks Run Side by Side**
+- [x] **Slice 6: Workflow Checks Run Side by Side**
 
   > Workflow checks run concurrently, by default as many as there are cores. `-DchecksAtOnce=N` caps them, and `-DchecksAtOnce=1` runs them one at a time. (FS §2.3, workflow checks)
 
-  - [ ] Task: `common/.../junit/ChecksAtOnceStrategy`, a `ParallelExecutionConfigurationStrategy`.
+  - [x] Task: `common/.../junit/ChecksAtOnceStrategy`, a `ParallelExecutionConfigurationStrategy`.
     - It reads `checksAtOnce` from the `ConfigurationParameters`, falling back to system properties. Unset means `Runtime.availableProcessors()`.
     - It returns parallelism = core pool = max pool = N, with `saturate` returning true.
     - A bad value fails with `checksAtOnce must be a positive whole number, got '<v>'`.
     - Add `junit-platform-engine` at provided scope to `common`.
     - Unit tests plus RED validation.
     - **[Agent: general-purpose]**
-  - [ ] Task: Enable parallel execution in `api-tests/src/test/resources/junit-platform.properties`.
+  - [x] Task: Enable parallel execution in `api-tests/src/test/resources/junit-platform.properties`.
     - Set `parallel.enabled=true`, `mode.default=concurrent`, `mode.classes.default=concurrent`, `config.strategy=custom` and `config.custom.class=com.labflow.common.junit.ChecksAtOnceStrategy`. Keep the random order.
     - Audit for shared state:
       - grep `happy/` and `rejection/` for list or size assertions that could see another check's data, and fix any;
       - keep any self-test that touches shared files `@Isolated`.
     - Extend `CheckIndependenceGuardTest` (api) to require the parallel keys.
     - **[Agent: testing-expert]**
-  - [ ] Verify:
+  - [x] Verify:
     - Start the lab on 18080.
     - Run `./mvnw -pl api-tests -am test -DbaseUrl=http://localhost:18080 -Dgroups=api` 3 times in a row on the same lab, all green.
     - Count the distinct `[thread]` names on check lines in `api-tests/target/logs/api-tests.log`: more than 1 with the default, at most 2 with `-DchecksAtOnce=2`, and exactly 1 with `-DchecksAtOnce=1`.

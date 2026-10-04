@@ -104,7 +104,7 @@ Rows that need a patient created *inside* the check take a recipe *description*,
 The random-order and timeout keys stay. Random order still applies within each level, and `CheckIndependenceGuardTest` keeps passing.
 
 **`ChecksAtOnceStrategy`** (`ParallelExecutionConfigurationStrategy`, about 20 lines, in `common`):
-- It reads `checksAtOnce` from JUnit's `ConfigurationParameters`. JUnit falls back to JVM system properties, and Surefire forwards `-D` to the fork, just like `-DbaseUrl` today.
+- It reads `checksAtOnce` from JUnit's `ConfigurationParameters`, then the `checksAtOnce` system property. *Corrected during Slice 6:* JUnit hands a custom strategy parameters prefixed with `junit.jupiter.execution.parallel.config.`, so the short `-DchecksAtOnce` never reaches it through them. The strategy therefore reads the system property directly; Surefire forwards `-D` to the fork, just like `-DbaseUrl` today. The long JUnit key wins if both are set.
 - Unset means `Runtime.availableProcessors()`. Anything other than a positive integer fails the run with `checksAtOnce must be a positive whole number, got '<value>'`.
 - It returns parallelism = core pool = max pool = N, with a saturate predicate that returns `true`. This stops the ForkJoinPool from adding compensation threads, so "no more than N at once" holds.
 - `-DchecksAtOnce=1` therefore runs the checks one at a time.

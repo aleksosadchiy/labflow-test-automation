@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,6 +60,27 @@ class CheckIndependenceGuardTest {
         assertThat(junit.getProperty("junit.jupiter.testclass.order.default"))
                 .as("the order in which the check classes run")
                 .contains("Random");
+    }
+
+    @Test
+    @DisplayName("The run lets checks run side by side, with the number at once decided by the shared strategy, so a check that shared data would show up")
+    void checksRunSideBySide() throws IOException {
+        Properties junit = new Properties();
+        try (InputStream in = CheckIndependenceGuardTest.class.getResourceAsStream("/junit-platform.properties")) {
+            assertThat(in).as("the run's JUnit settings file, junit-platform.properties").isNotNull();
+            junit.load(in);
+        }
+
+        Map<String, String> required = Map.of(
+                "junit.jupiter.execution.parallel.enabled", "true",
+                "junit.jupiter.execution.parallel.mode.default", "concurrent",
+                "junit.jupiter.execution.parallel.mode.classes.default", "concurrent",
+                "junit.jupiter.execution.parallel.config.strategy", "custom",
+                "junit.jupiter.execution.parallel.config.custom.class", "com.labflow.common.junit.ChecksAtOnceStrategy");
+
+        required.forEach((key, value) -> assertThat(junit.getProperty(key))
+                .as("the parallel-execution setting %s", key)
+                .isEqualTo(value));
     }
 
     @Test
