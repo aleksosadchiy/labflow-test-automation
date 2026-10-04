@@ -12,7 +12,7 @@
 
     <artifactId>common</artifactId>
     <name>common</name>
-    <description>The lab's shared concepts: model, workflow stages, configuration, exact messages. No third-party runtime dependencies.</description>
+    <description>The lab's shared concepts (model, workflow stages, configuration, exact messages) and JUnit helpers; its only runtime dependency is slf4j-api.</description>
 
     <dependencies>
         <!-- Logging API only (no implementation): the run-log code writes through it. -->

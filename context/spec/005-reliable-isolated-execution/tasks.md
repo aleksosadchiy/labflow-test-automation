@@ -266,11 +266,11 @@ After each slice:
     - Delete the artifacts and stop the lab.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 8: Documented Commands, Measured Times and Architecture Update**
+- [x] **Slice 8: Documented Commands, Measured Times and Architecture Update**
 
   > The README explains every new command and option and records the measured one-at-a-time and side-by-side times. `architecture.md` matches what was built. (FS §2.1–§2.6 README criteria)
 
-  - [ ] Task: Measure on one running lab (18080) and record the machine's core count.
+  - [x] Task: Measure on one running lab (18080) and record the machine's core count.
     - Do one warm-up run.
     - Take the median `Total time:` of 3 runs each of:
       - `./mvnw test -Dgroups=regression` (default)
@@ -279,7 +279,7 @@ After each slice:
     - Confirm that side by side is faster than one at a time. Record the smoke time for information only (the smoke-vs-regression time criterion was removed, see the FS Change Log).
     - Hand the numbers to the README task.
     - **[Agent: testing-expert]**
-  - [ ] Task: Update `README.md` → `## Running Tests`.
+  - [x] Task: Update `README.md` → `## Running Tests`.
     - A labels table with the four subset commands, quoted.
     - The "0 checks ran" note.
     - Settings table rows for `ENVIRONMENT`/`-Denvironment`, `BROWSER`/`-Dbrowser` (with the Codespaces `BROWSER` note), `-DchecksAtOnce` (with the advice to lower it on small machines) and `-DlogBodies`.
@@ -288,7 +288,7 @@ After each slice:
     - The measured times table.
     - Keep the existing sections intact.
     - **[Agent: testing-expert]**
-  - [ ] Task: Update `context/product/architecture.md` (via the `/awos:architecture` conventions) and mark the roadmap items done:
+  - [x] Task: Update `context/product/architecture.md` (via the `/awos:architecture` conventions) and mark the roadmap items done:
     - the `test-data` module;
     - `common`'s provided JUnit dependencies and `slf4j-api`;
     - labels by base class;
@@ -299,7 +299,7 @@ After each slice:
     - Fix the `<description>` in `common/pom.xml`, which still says it has no third-party runtime dependencies (it now has `slf4j-api`), and the matching line in `technical-considerations.md` §2.1.
     - Tick Phase 2 "Reliable, Isolated Test Execution" and "Configuration & Logging" in `roadmap.md`.
     - **[Agent: general-purpose]**
-  - [ ] Verify:
+  - [x] Verify:
     - Follow the README literally on a fresh `./mvnw clean`: run each documented command once against the lab on 18080. Every one behaves as described.
     - Confirm the times in the README match the measurement output.
     - Stop the lab and delete scratch files.

@@ -41,14 +41,14 @@ _Senior-level engineering capabilities: UI automation, reliable parallel executi
   - [x] **Page Objects for Core Screens:** Implement Page Objects for the key UI flows (e.g. Login, Sample List, Create Sample, Sample Details, Report), encapsulating elements and actions rather than exposing locators to tests.
   - [x] **Business-Readable UI Scenarios:** Write UI test scenarios that read as user workflows rather than locator collections.
 
-- [ ] **Reliable, Isolated Test Execution**
-  - [ ] **JUnit 5 Test Design:** Use parameterized tests and tags (`api`, `ui`, `smoke`, `regression`) to organize and target test runs.
-  - [ ] **Thread-Safe Parallel Execution:** Configure JUnit 5 for concurrent execution across classes and methods without shared mutable state.
-  - [ ] **Test-Data Builders & Isolation:** Provide reusable builders/factories that generate unique, isolated test data per test to prevent collisions under parallel runs.
+- [x] **Reliable, Isolated Test Execution** _(Done in `context/spec/005-reliable-isolated-execution/`.)_
+  - [x] **JUnit 5 Test Design:** Use parameterized tests and tags (`api`, `ui`, `smoke`, `regression`) to organize and target test runs.
+  - [x] **Thread-Safe Parallel Execution:** Configure JUnit 5 for concurrent execution across classes and methods without shared mutable state.
+  - [x] **Test-Data Builders & Isolation:** Provide reusable builders/factories that generate unique, isolated test data per test to prevent collisions under parallel runs.
 
-- [ ] **Configuration & Logging**
-  - [ ] **Externalized Configuration:** Remove hardcoded environment values in favor of CLI parameters or environment variables (base URL, API token, browser, environment).
-  - [ ] **Structured Logging:** Adopt a real logging framework capturing request/response and business-identifier detail useful for debugging, while explicitly excluding credentials, tokens, and sensitive patient data.
+- [x] **Configuration & Logging** _(Done in `context/spec/005-reliable-isolated-execution/`.)_
+  - [x] **Externalized Configuration:** Remove hardcoded environment values in favor of CLI parameters or environment variables (base URL, API token, browser, environment).
+  - [x] **Structured Logging:** Adopt a real logging framework capturing request/response and business-identifier detail useful for debugging, while explicitly excluding credentials, tokens, and sensitive patient data.
 
 ---
 

@@ -31,12 +31,12 @@ Modules touched: root `pom.xml`, `common`, `api-client`, new `test-data`, `api-t
 | Module | Change |
 |---|---|
 | root `pom.xml` | Add `test-data` to `<modules>` (after `common`) and to `dependencyManagement`. Manage `slf4j-api` (2.0.x) and `logback-classic` (current 1.5.x; Java 11+, fine on 17). The Surefire reporter block stays **byte-identical** because `PhrasedTestNamesGuardTest` reads it as text. No profiles, no `groups` default. |
-| `common` | New package `com.labflow.common.junit` (labels, parallel strategy, check-name interceptor). Adds `junit-jupiter-api` and `junit-platform-engine` at **`provided`** scope: compile-time only, so they do not leak into consumers, which already bring JUnit at test scope. `common` keeps zero third-party *runtime* dependencies. |
+| `common` | New package `com.labflow.common.junit` (labels, parallel strategy, check-name interceptor). Adds `junit-jupiter-api` and `junit-platform-engine` at **`provided`** scope: compile-time only, so they do not leak into consumers, which already bring JUnit at test scope. Adds `slf4j-api` (compile) for the check-name interceptor's MDC; that is `common`'s one third-party *runtime* dependency. |
 | `test-data` (new) | Depends on `common` only. Main code: recipes plus `UniqueData`. Its own unit tests at test scope. |
 | `api-client` | Adds `slf4j-api` (compile) for the request-log filter. Adds `logback-classic` (test) with a WARN-only `logback-test.xml` to avoid the "no SLF4J provider" warning. |
 | `api-tests`, `ui-tests` | Add `test-data` (test scope) and `logback-classic` (test scope). Each gets `src/test/resources/logback-test.xml`. Delete the local `UniqueData` copies. |
 
-**Assumption:** the labels, the parallel strategy and the check-name interceptor live in `common` rather than a new "test-support" module. That keeps them in one place for both test modules without adding a sixth module. The `provided` scope keeps `common` free of runtime dependencies.
+**Assumption:** the labels, the parallel strategy and the check-name interceptor live in `common` rather than a new "test-support" module. That keeps them in one place for both test modules without adding a sixth module. The `provided` scope keeps JUnit out of `common`'s runtime dependencies.
 
 ### 2.2. Labels (Functional §2.1)
 
@@ -173,7 +173,7 @@ The changes are in `ui-tests/.../support/BrowserExtension.java`:
 | Request/answer bodies in log | `-DlogBodies` → `LOG_BODIES` | `false` | no |
 
 - `LabEnvironment` enum in `common/.../config/`: `LOCAL` and `CI`, both `http://localhost:8080`. In Phase 3 the CI job starts the lab on the runner; only the name differs. `LabConfig` becomes `(baseUrl, apiKey, environment)` and `load(...)` throws `Unknown environment 'x'. Known: local, ci`.
-- **Run banner:** the pre-flight listeners log once, at INFO, `Lab run: environment=local address=http://localhost:8080 key=*** [browser=chromium] checksAtOnce=8`. They validate the settings first, then probe the lab as today.
+- **Run banner:** the pre-flight listeners log once, at INFO, `Lab run: environment=local address=http://localhost:8080 key=***`, with ` browser=chromium` appended in `ui-tests` (as built; the number of checks at once is not part of the banner). They validate the settings first, then probe the lab as today.
 - **Assumption:** the pre-flight lab probe stays unconditional. A run with a label that matches nothing therefore still needs a running lab. The spec's criteria assume a running lab, and making the probe tag-aware adds complexity for no requirement.
 - Codespaces/devcontainers sometimes set `BROWSER` to a helper path. The unsupported-browser error catches this, and the README mentions it.
 
