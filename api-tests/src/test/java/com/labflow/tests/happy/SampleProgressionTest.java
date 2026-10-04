@@ -1,6 +1,5 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.happy;
 
 import com.labflow.common.model.Patient;

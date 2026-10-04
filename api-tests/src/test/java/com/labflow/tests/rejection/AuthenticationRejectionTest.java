@@ -1,11 +1,11 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.rejection;
 
 import com.labflow.client.LabClient;
 import com.labflow.client.http.LabResponse;
 import com.labflow.common.LabMessages;
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleType;
@@ -156,6 +156,7 @@ class AuthenticationRejectionTest extends LabTest {
     }
 
     @Test
+    @Smoke
     @DisplayName("Looking a sample up without an access key is refused too, and shows nothing of the sample")
     void readWithoutKeyIsRefused() {
         Patient patient = newPatient();

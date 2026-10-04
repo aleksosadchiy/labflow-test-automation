@@ -20,6 +20,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+        <!-- JUnit API to compile the label annotations (com.labflow.common.junit). Provided: not passed
+             on at runtime, because api-tests and ui-tests already bring JUnit at test scope. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

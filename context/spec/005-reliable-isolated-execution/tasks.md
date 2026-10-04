@@ -111,16 +111,16 @@ After each slice:
     - Stop the lab and delete scratch files.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 3: Labels and One Command per Subset**
+- [x] **Slice 3: Labels and One Command per Subset**
 
   > Every check is labelled `api` or `ui`, plus `regression`. Six checks are labelled `smoke`. Smoke, regression, api-only and ui-only runs each have one command. A run whose label matches nothing says `Lab checks run: 0`. (FS §2.1)
 
-  - [ ] Task: Composed label annotations in `common/src/main/java/com/labflow/common/junit/`: `ApiCheck`, `UiCheck`, `Smoke`, `Regression`.
+  - [x] Task: Composed label annotations in `common/src/main/java/com/labflow/common/junit/`: `ApiCheck`, `UiCheck`, `Smoke`, `Regression`.
     - Each is meta-annotated with `@Tag`, `@Retention(RUNTIME)`, `@Target({TYPE, METHOD})` and `@Inherited`.
     - Add `junit-jupiter-api` at `provided` scope to `common` (coordinate the POM line with `github-actions-cicd` conventions; no version, use the BOM).
     - Unit test: each annotation resolves to its tag.
     - **[Agent: general-purpose]**
-  - [ ] Task: Apply the labels and count the checks.
+  - [x] Task: Apply the labels and count the checks.
     - `LabTest` gets `@ApiCheck @Regression`; `UiTest` gets `@UiCheck @Regression`.
     - Add `@Smoke` to exactly these six:
       - api `FullJourneyTest#wholeJourneyFromPatientToReport`
@@ -137,7 +137,7 @@ After each slice:
       - no raw `@Tag(` appears in check files.
     - RED-validate the guard.
     - **[Agent: testing-expert]**
-  - [ ] Verify:
+  - [x] Verify:
     - Start the lab on 18080.
     - Run each of these with `-DbaseUrl=http://localhost:18080` and quote the `Tests run` lines and the `Lab checks run:` lines:
       - `./mvnw test -Dgroups="smoke | !(api | ui)"`: 6 lab checks plus the self-checks.

@@ -3,6 +3,8 @@ package com.labflow.ui.tests.support;
 import com.microsoft.playwright.Page;
 import com.labflow.client.LabClient;
 import com.labflow.common.config.LabConfig;
+import com.labflow.common.junit.Regression;
+import com.labflow.common.junit.UiCheck;
 import com.labflow.common.model.Patient;
 import com.labflow.testdata.Patients;
 import com.labflow.ui.config.UiCredentials;
@@ -16,7 +18,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * once per test instance) and the sign-in credentials, plus the Playwright {@link Page} that
  * {@link BrowserExtension} sets fresh before each test runs. There is no static or mutable
  * shared state, so checks stay independent of each other and safe to run in any order.
+ *
+ * <p>Labels: every check inherits {@code ui} and {@code regression} from here (both annotations
+ * are {@code @Inherited}), so no check file carries a label of its own except {@code @Smoke} on
+ * the few key paths.
  */
+@UiCheck
+@Regression
 @ExtendWith({ScenarioNameExtension.class, BrowserExtension.class})
 public abstract class UiTest {
 

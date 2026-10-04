@@ -1,8 +1,8 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.happy;
 
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Order;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Sample;
@@ -69,6 +69,7 @@ class PatientOrderSampleTest extends LabTest {
     }
 
     @Test
+    @Smoke
     @DisplayName("A newly registered sample starts at the Accessioned stage")
     void newSampleIsAccessioned() {
         Patient patient = newPatient();

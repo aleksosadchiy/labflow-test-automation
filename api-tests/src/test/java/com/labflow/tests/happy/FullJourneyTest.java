@@ -1,8 +1,8 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.happy;
 
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Order;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Progress;
@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.tuple;
 class FullJourneyTest extends LabTest {
 
     @Test
+    @Smoke
     @DisplayName("The whole journey works: patient, order, sample, every stage, result and report, all belonging to the sample registered")
     void wholeJourneyFromPatientToReport() {
         Patient patient = newPatient();

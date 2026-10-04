@@ -1,6 +1,5 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.rejection;
 
 import com.labflow.client.http.LabResponse;

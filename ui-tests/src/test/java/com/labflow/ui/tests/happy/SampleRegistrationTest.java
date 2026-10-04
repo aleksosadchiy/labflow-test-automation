@@ -1,8 +1,8 @@
 // @layer: e2e
 // @spec: 004-ui-automation-page-objects
-// @regression
 package com.labflow.ui.tests.happy;
 
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.SampleType;
 import com.labflow.common.model.WorkflowStage;
@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SampleRegistrationTest extends UiTest {
 
     @Test
+    @Smoke
     @DisplayName("A sample registered on screen for a known patient appears in the list as Accessioned")
     void registeredSampleIsListedAsAccessioned() {
         Patient patient = newPatient();
