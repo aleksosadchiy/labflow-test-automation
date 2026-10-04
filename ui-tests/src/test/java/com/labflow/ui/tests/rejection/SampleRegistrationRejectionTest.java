@@ -10,7 +10,6 @@ import com.labflow.testdata.UniqueData;
 import com.labflow.ui.pages.CreateSamplePage;
 import com.labflow.ui.tests.support.UiTest;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -62,32 +61,50 @@ class SampleRegistrationRejectionTest extends UiTest {
                 .isEqualTo(missingField.expectedMessage);
     }
 
-    @Test
-    @DisplayName("Registering a sample for a patient the lab does not know is refused")
-    void unknownPatientIsRefused() {
-        String unknownPatientId = UniqueData.name("unknown-patient");
+    /**
+     * A sample the screen cannot register even though both fields are filled in. A row holds a
+     * description of the input (whether the patient is one the lab has, and the raw sample type),
+     * never a created patient: each run of a row registers its own.
+     */
+    enum UnacceptableSample {
+        UNKNOWN_PATIENT("A sample for a patient the lab does not know is refused", false, null,
+                LabMessages.PATIENT_NOT_FOUND),
+        UNSUPPORTED_TYPE("A sample of a type the lab does not support (PLASMA) is refused, for a known patient", true, "PLASMA",
+                LabMessages.INVALID_SAMPLE_TYPE);
 
-        SampleDraft sample = Samples.validFor(unknownPatientId);
+        private final String scenario;
+        private final boolean knownPatient;
+        private final String rawTypeOrNullForValid;
+        private final String expectedMessage;
 
-        CreateSamplePage createSample = signedIn().startNewSample()
-                .createSampleExpectingError(sample.patientId(), sample.rawType());
+        UnacceptableSample(String scenario, boolean knownPatient, String rawTypeOrNullForValid, String expectedMessage) {
+            this.scenario = scenario;
+            this.knownPatient = knownPatient;
+            this.rawTypeOrNullForValid = rawTypeOrNullForValid;
+            this.expectedMessage = expectedMessage;
+        }
 
-        assertThat(createSample.errorMessage())
-                .as("the Create Sample screen's error message for a patient the lab does not know")
-                .isEqualTo(LabMessages.PATIENT_NOT_FOUND);
+        @Override
+        public String toString() {
+            return scenario;
+        }
     }
 
-    @Test
-    @DisplayName("Registering a sample of a type the lab does not support is refused, for a known patient")
-    void unsupportedSampleTypeIsRefused() {
-        Patient patient = newPatient();
-        SampleDraft sample = Samples.validFor(patient.id()).withRawType("PLASMA");
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(UnacceptableSample.class)
+    @DisplayName("Registering a sample for an unknown patient or of an unsupported type is refused")
+    void unacceptableSampleIsRefused(UnacceptableSample unacceptable) {
+        String patientId = unacceptable.knownPatient ? newPatient().id() : UniqueData.name("unknown-patient");
+        SampleDraft sample = Samples.validFor(patientId);
+        if (unacceptable.rawTypeOrNullForValid != null) {
+            sample = sample.withRawType(unacceptable.rawTypeOrNullForValid);
+        }
 
         CreateSamplePage createSample = signedIn().startNewSample()
                 .createSampleExpectingError(sample.patientId(), sample.rawType());
 
         assertThat(createSample.errorMessage())
-                .as("the Create Sample screen's error message for an unsupported sample type")
-                .isEqualTo(LabMessages.INVALID_SAMPLE_TYPE);
+                .as("the Create Sample screen's error message for %s", unacceptable)
+                .isEqualTo(unacceptable.expectedMessage);
     }
 }

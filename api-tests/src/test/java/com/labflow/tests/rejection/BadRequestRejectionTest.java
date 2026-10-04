@@ -12,6 +12,8 @@ import com.labflow.tests.support.LabTest;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import static com.labflow.client.assertions.LabAssertions.assertThat;
 import static com.labflow.client.http.Rejection.INVALID_INPUT;
@@ -25,55 +27,65 @@ import static com.labflow.client.http.Rejection.METHOD_NOT_ALLOWED;
  */
 class BadRequestRejectionTest extends LabTest {
 
-    /**
-     * Content the lab cannot read. The label is what a failure shows; the text is never shown,
-     * so a failure names which kind of broken body it was and nothing else.
-     */
-    enum BrokenBody {
-        TRUNCATED_JSON("truncated JSON", "{\"patientId\": "),
-        PLAIN_TEXT("plain text", "not json at all"),
-        EMPTY("empty body", "");
+    /** Where a request is sent: the two endpoints that read a request body. */
+    enum Target { SAMPLE, PATIENT }
 
-        private final String label;
+    /**
+     * One kind of request the lab cannot read. The scenario is what a run shows for the row; the
+     * body text is never shown, so a failure names the kind of broken request and nothing else.
+     */
+    enum MalformedRequest {
+        SAMPLE_TRUNCATED_JSON("A sample request with truncated JSON is refused as malformed, and no sample is created",
+                Target.SAMPLE, "{\"patientId\": "),
+        SAMPLE_PLAIN_TEXT("A sample request with plain text instead of JSON is refused as malformed, and no sample is created",
+                Target.SAMPLE, "not json at all"),
+        SAMPLE_EMPTY("A sample request with an empty body is refused as malformed, and no sample is created",
+                Target.SAMPLE, ""),
+        PATIENT_PLAIN_TEXT("A patient request with plain text instead of JSON is refused as malformed, and no patient is issued",
+                Target.PATIENT, "not json at all");
+
+        private final String scenario;
+        private final Target target;
         private final String text;
 
-        BrokenBody(String label, String text) {
-            this.label = label;
+        MalformedRequest(String scenario, Target target, String text) {
+            this.scenario = scenario;
+            this.target = target;
             this.text = text;
         }
+
+        @Override
+        public String toString() {
+            return scenario;
+        }
     }
 
-    @Test
-    @DisplayName("A sample request whose content cannot be read is refused as malformed, and no sample is created")
-    void malformedBodyRefused() {
-        Patient patient = newPatient();
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(MalformedRequest.class)
+    @DisplayName("A request whose content cannot be read is refused as malformed, and nothing is created")
+    void malformedBodyRefused(MalformedRequest request) {
+        if (request.target == Target.SAMPLE) {
+            Patient patient = newPatient();
 
-        for (BrokenBody body : BrokenBody.values()) {
-            LabResponse<Sample> response = lab.samples().attemptRegisterRaw(body.text);
+            LabResponse<Sample> response = lab.samples().attemptRegisterRaw(request.text);
 
             assertThat(response)
-                    .as("sample request with a %s", body.label)
                     .isRejectedAs(INVALID_INPUT, LabMessages.MALFORMED_REQUEST_BODY)
                     .hasNoLocationHeader();
+            Assertions.assertThat(lab.samples().listFor(patient.id()))
+                    .as("samples the lab holds for the patient after the refusal")
+                    .isEmpty();
+        } else {
+            LabResponse<Patient> response = lab.patients().attemptRegisterRaw(request.text);
+
+            assertThat(response)
+                    .isRejectedAs(INVALID_INPUT, LabMessages.MALFORMED_REQUEST_BODY)
+                    .hasNoLocationHeader();
+            // The lab lists no patients, so what a check can observe is that none came back.
+            Assertions.assertThat(response.body())
+                    .as("the patient the lab returned for the refused request")
+                    .isEmpty();
         }
-
-        Assertions.assertThat(lab.samples().listFor(patient.id()))
-                .as("samples the lab holds for the patient after the refusals")
-                .isEmpty();
-    }
-
-    @Test
-    @DisplayName("A patient request whose content cannot be read is refused as malformed, and no patient is issued")
-    void malformedPatientBodyRefused() {
-        LabResponse<Patient> response = lab.patients().attemptRegisterRaw("not json at all");
-
-        assertThat(response)
-                .isRejectedAs(INVALID_INPUT, LabMessages.MALFORMED_REQUEST_BODY)
-                .hasNoLocationHeader();
-        // The lab lists no patients, so what a check can observe is that none came back.
-        Assertions.assertThat(response.body())
-                .as("the patient the lab returned for the refused request")
-                .isEmpty();
     }
 
     @Test

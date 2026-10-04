@@ -149,11 +149,11 @@ After each slice:
     - Stop the lab.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 4: One Check, Many Inputs**
+- [x] **Slice 4: One Check, Many Inputs**
 
   > Checks that differ only by input are written once with a table, and each row appears under its own plain-language name. (FS §2.2)
 
-  - [ ] Task: Convert the copy-pasted variants to `@ParameterizedTest`, using `name = "..."` or `Arguments.argumentSet("plain name", ...)`:
+  - [x] Task: Convert the copy-pasted variants to `@ParameterizedTest`, using `name = "..."` or `Arguments.argumentSet("plain name", ...)`:
     - api `InputValidationRejectionTest`: one check for patient name (null / empty / blank, replacing the in-test loop), one for sample input (missing patient, unknown patient, missing type, unsupported type), and one for order input.
     - api `BadRequestRejectionTest`: malformed bodies.
     - api `DuplicateSampleRejectionTest`: sample types.
@@ -162,7 +162,7 @@ After each slice:
     - Keep every assertion that exists today; nothing may get weaker.
     - RED-validate one row per converted check: a failure must name the failing row.
     - **[Agent: testing-expert]**
-  - [ ] Verify:
+  - [x] Verify:
     - Start the lab on 18080.
     - Run `./mvnw clean test -DbaseUrl=http://localhost:18080 -fae`. Expect green.
     - In `target/surefire-reports/TEST-*InputValidationRejectionTest.xml` and `TEST-*SampleRegistrationRejectionTest.xml`, quote that every row is listed under its plain-language name.
