@@ -8,7 +8,7 @@ import com.labflow.client.service.SampleService;
 import com.labflow.common.LabMessages;
 import com.labflow.common.model.WorkflowStage;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
+import com.labflow.testdata.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;

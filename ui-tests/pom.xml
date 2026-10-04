@@ -42,6 +42,12 @@
             <groupId>com.labflow</groupId>
             <artifactId>api-client</artifactId>
         </dependency>
+        <!-- The shared test-data recipes; test scope, because only the checks build data. -->
+        <dependency>
+            <groupId>com.labflow</groupId>
+            <artifactId>test-data</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Compile scope: the Page Objects in src/main use it. Version comes from the root. -->
         <dependency>
             <groupId>com.microsoft.playwright</groupId>

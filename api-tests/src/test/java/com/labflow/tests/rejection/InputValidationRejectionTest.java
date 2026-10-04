@@ -7,14 +7,18 @@ import com.labflow.client.http.LabResponse;
 import com.labflow.common.LabMessages;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Sample;
-import com.labflow.common.model.SampleType;
+import com.labflow.testdata.OrderDraft;
+import com.labflow.testdata.Orders;
+import com.labflow.testdata.PatientDraft;
+import com.labflow.testdata.Patients;
+import com.labflow.testdata.SampleDraft;
+import com.labflow.testdata.Samples;
+import com.labflow.testdata.UniqueData;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static com.labflow.client.assertions.LabAssertions.assertThat;
@@ -33,7 +37,8 @@ class InputValidationRejectionTest extends LabTest {
     @DisplayName("A patient cannot be registered without a name, whether it is missing or only blank")
     void patientWithoutNameIsRefused() {
         // null = the name is left out of the request; the others are present but blank.
-        for (String name : Arrays.asList(null, "", "   ")) {
+        for (PatientDraft draft : List.of(Patients.valid().withoutName(), Patients.valid().withName(""), Patients.valid().blankName())) {
+            String name = draft.name();
             LabResponse<Patient> response = lab.patients().attemptRegister(name);
 
             assertThat(response)
@@ -46,9 +51,10 @@ class InputValidationRejectionTest extends LabTest {
     @Test
     @DisplayName("A sample cannot be registered without a sample type, and none is created")
     void sampleWithoutTypeIsRefused() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
+        SampleDraft sample = Samples.validFor(patient.id()).withoutType();
 
-        LabResponse<Sample> response = lab.samples().attemptRegister(patient.id(), null);
+        LabResponse<Sample> response = lab.samples().attemptRegister(sample.patientId(), sample.rawType());
 
         assertThat(response)
                 .isRejectedAs(INVALID_INPUT, LabMessages.SAMPLE_TYPE_REQUIRED)
@@ -59,7 +65,9 @@ class InputValidationRejectionTest extends LabTest {
     @Test
     @DisplayName("A sample cannot be registered without a patient")
     void sampleWithoutPatientIsRefused() {
-        LabResponse<Sample> response = lab.samples().attemptRegister(null, SampleType.BLOOD.name());
+        SampleDraft sample = Samples.validFor(null).withoutPatient();
+
+        LabResponse<Sample> response = lab.samples().attemptRegister(sample.patientId(), sample.rawType());
 
         assertThat(response)
                 .isRejectedAs(INVALID_INPUT, LabMessages.PATIENT_REQUIRED)
@@ -69,7 +77,9 @@ class InputValidationRejectionTest extends LabTest {
     @Test
     @DisplayName("An order cannot be placed without a patient")
     void orderWithoutPatientIsRefused() {
-        assertThat(lab.orders().attemptPlace(null))
+        OrderDraft order = Orders.validFor(null).withoutPatient();
+
+        assertThat(lab.orders().attemptPlace(order.patientId()))
                 .isRejectedAs(INVALID_INPUT, LabMessages.PATIENT_REQUIRED)
                 .hasNoLocationHeader();
     }
@@ -89,7 +99,9 @@ class InputValidationRejectionTest extends LabTest {
     void sampleForUnknownPatientIsRefused() {
         String unknownPatientId = UniqueData.name("unknown-patient");
 
-        LabResponse<Sample> response = lab.samples().attemptRegister(unknownPatientId, SampleType.BLOOD.name());
+        SampleDraft sample = Samples.validFor(unknownPatientId);
+
+        LabResponse<Sample> response = lab.samples().attemptRegister(sample.patientId(), sample.rawType());
 
         assertThat(response)
                 .isRejectedAs(NOT_FOUND, LabMessages.PATIENT_NOT_FOUND)
@@ -100,9 +112,10 @@ class InputValidationRejectionTest extends LabTest {
     @Test
     @DisplayName("A sample of a type the lab does not support (PLASMA) is refused, and none is created")
     void unsupportedSampleTypeIsRefused() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
+        SampleDraft sample = Samples.validFor(patient.id()).withRawType("PLASMA");
 
-        LabResponse<Sample> response = lab.samples().attemptRegister(patient.id(), "PLASMA");
+        LabResponse<Sample> response = lab.samples().attemptRegister(sample.patientId(), sample.rawType());
 
         assertThat(response)
                 .isRejectedAs(INVALID_INPUT, LabMessages.INVALID_SAMPLE_TYPE)

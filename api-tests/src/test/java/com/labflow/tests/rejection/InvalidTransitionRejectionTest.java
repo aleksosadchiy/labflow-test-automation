@@ -10,7 +10,6 @@ import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleType;
 import com.labflow.common.model.WorkflowStage;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -65,7 +64,7 @@ class InvalidTransitionRejectionTest extends LabTest {
     @EnumSource(Move.class)
     @DisplayName("A move to any stage other than the next one is refused, and the sample's stage is unchanged")
     void wrongMoveIsRefused(Move move) {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Sample sample = lab.samples().register(patient.id(), SampleType.BLOOD);
         if (move.from != ACCESSIONED) {
             lab.samples().walkTo(sample.id(), move.from);

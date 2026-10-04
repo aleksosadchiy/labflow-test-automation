@@ -23,6 +23,12 @@
             <groupId>com.labflow</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <!-- The shared test-data recipes; test scope, because only the checks build data. -->
+        <dependency>
+            <groupId>com.labflow</groupId>
+            <artifactId>test-data</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

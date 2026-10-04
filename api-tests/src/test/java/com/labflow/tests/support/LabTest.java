@@ -2,6 +2,8 @@ package com.labflow.tests.support;
 
 import com.labflow.client.LabClient;
 import com.labflow.common.config.LabConfig;
+import com.labflow.common.model.Patient;
+import com.labflow.testdata.Patients;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
@@ -14,4 +16,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public abstract class LabTest {
 
     protected final LabClient lab = LabClient.create(LabConfig.fromEnvironment());
+
+    /** Registers a new patient from the shared recipe, with a unique {@code TEST-} name. */
+    protected Patient newPatient() {
+        return lab.patients().register(Patients.valid().name());
+    }
 }

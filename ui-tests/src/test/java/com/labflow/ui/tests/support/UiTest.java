@@ -4,6 +4,7 @@ import com.microsoft.playwright.Page;
 import com.labflow.client.LabClient;
 import com.labflow.common.config.LabConfig;
 import com.labflow.common.model.Patient;
+import com.labflow.testdata.Patients;
 import com.labflow.ui.config.UiCredentials;
 import com.labflow.ui.pages.LoginPage;
 import com.labflow.ui.pages.SampleListPage;
@@ -37,6 +38,6 @@ public abstract class UiTest {
      * before the screen steps begin (FS 2.8).
      */
     protected Patient newPatient() {
-        return lab.patients().register(UniqueData.name("ui-patient"));
+        return lab.patients().register(Patients.valid().name());
     }
 }

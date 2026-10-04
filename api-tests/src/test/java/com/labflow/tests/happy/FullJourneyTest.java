@@ -13,7 +13,6 @@ import com.labflow.common.model.StageEntry;
 import com.labflow.common.model.TestResult;
 import com.labflow.common.model.WorkflowStage;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +24,7 @@ class FullJourneyTest extends LabTest {
     @Test
     @DisplayName("The whole journey works: patient, order, sample, every stage, result and report, all belonging to the sample registered")
     void wholeJourneyFromPatientToReport() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Order order = lab.orders().place(patient.id());
         Sample registered = lab.samples().register(patient.id(), SampleType.BLOOD, order.id());
         assertThat(registered.orderId()).isEqualTo(order.id());

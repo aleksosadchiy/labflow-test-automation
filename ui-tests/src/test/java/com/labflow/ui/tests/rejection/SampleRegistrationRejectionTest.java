@@ -5,10 +5,11 @@ package com.labflow.ui.tests.rejection;
 
 import com.labflow.common.LabMessages;
 import com.labflow.common.model.Patient;
-import com.labflow.common.model.SampleType;
+import com.labflow.testdata.SampleDraft;
+import com.labflow.testdata.Samples;
+import com.labflow.testdata.UniqueData;
 import com.labflow.ui.pages.CreateSamplePage;
 import com.labflow.ui.tests.support.UiTest;
-import com.labflow.ui.tests.support.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,8 +51,9 @@ class SampleRegistrationRejectionTest extends UiTest {
     @DisplayName("Submitting the Create Sample screen with the patient or the sample type left blank is refused")
     void missingFieldIsRequired(MissingField missingField) {
         Patient patient = newPatient();
-        String patientId = missingField.blankPatient ? "" : patient.id();
-        String sampleType = missingField.blankSampleType ? "" : SampleType.BLOOD.name();
+        SampleDraft sample = Samples.validFor(patient.id());
+        String patientId = missingField.blankPatient ? "" : sample.patientId();
+        String sampleType = missingField.blankSampleType ? "" : sample.rawType();
 
         CreateSamplePage createSample = signedIn().startNewSample()
                 .createSampleExpectingError(patientId, sampleType);
@@ -66,8 +68,10 @@ class SampleRegistrationRejectionTest extends UiTest {
     void unknownPatientIsRefused() {
         String unknownPatientId = UniqueData.name("unknown-patient");
 
+        SampleDraft sample = Samples.validFor(unknownPatientId);
+
         CreateSamplePage createSample = signedIn().startNewSample()
-                .createSampleExpectingError(unknownPatientId, SampleType.BLOOD.name());
+                .createSampleExpectingError(sample.patientId(), sample.rawType());
 
         assertThat(createSample.errorMessage())
                 .as("the Create Sample screen's error message for a patient the lab does not know")
@@ -78,9 +82,10 @@ class SampleRegistrationRejectionTest extends UiTest {
     @DisplayName("Registering a sample of a type the lab does not support is refused, for a known patient")
     void unsupportedSampleTypeIsRefused() {
         Patient patient = newPatient();
+        SampleDraft sample = Samples.validFor(patient.id()).withRawType("PLASMA");
 
         CreateSamplePage createSample = signedIn().startNewSample()
-                .createSampleExpectingError(patient.id(), "PLASMA");
+                .createSampleExpectingError(sample.patientId(), sample.rawType());
 
         assertThat(createSample.errorMessage())
                 .as("the Create Sample screen's error message for an unsupported sample type")

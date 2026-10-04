@@ -10,7 +10,6 @@ import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleType;
 import com.labflow.common.model.WorkflowStage;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +47,7 @@ class BadRequestRejectionTest extends LabTest {
     @Test
     @DisplayName("A sample request whose content cannot be read is refused as malformed, and no sample is created")
     void malformedBodyRefused() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
 
         for (BrokenBody body : BrokenBody.values()) {
             LabResponse<Sample> response = lab.samples().attemptRegisterRaw(body.text);
@@ -81,7 +80,7 @@ class BadRequestRejectionTest extends LabTest {
     @Test
     @DisplayName("Deleting a sample is not offered: it is refused as not allowed, lists GET as allowed, and the sample stays")
     void deleteSampleIsMethodNotAllowed() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Sample sample = lab.samples().register(patient.id(), SampleType.BLOOD);
 
         LabResponse<Void> response = lab.samples().attemptDelete(sample.id());

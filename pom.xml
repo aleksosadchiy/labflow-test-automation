@@ -19,6 +19,7 @@
 
     <modules>
         <module>common</module>
+        <module>test-data</module>
         <module>api-client</module>
         <module>ui-tests</module>
         <module>api-tests</module>
@@ -91,6 +92,11 @@
             <dependency>
                 <groupId>com.labflow</groupId>
                 <artifactId>common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.labflow</groupId>
+                <artifactId>test-data</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

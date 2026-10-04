@@ -36,6 +36,14 @@ class CheckIndependenceGuardTest {
             "After" + "All",
             "Test" + "Instance");
 
+    // Written in pieces for the same reason. Test data comes only from the shared recipes in
+    // test-data, so a check never makes up a random value or a patient-name prefix of its own.
+    // Only the start of a literal ("patient-...") is forbidden, so expected messages stay free.
+    private static final List<String> HAND_MADE_DATA = List.of(
+            "UUID." + "randomUUID",
+            "\"patient" + "-",
+            "\"ui-" + "patient");
+
     @Test
     @DisplayName("The run shuffles the order of screen checks and of their classes, so a check that secretly needed another one would fail")
     void checksRunInRandomOrder() throws IOException {
@@ -65,6 +73,21 @@ class CheckIndependenceGuardTest {
 
         assertThat(offences)
                 .as("checks must not fix their order or share set-up; found: %s", String.join(" | ", offences))
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("No check makes up its own random values or patient names, so all test data comes from the shared recipes")
+    void checksTakeTheirDataFromTheRecipes() {
+        List<Path> checkFiles = CheckSources.checkFiles();
+
+        List<String> offences = new ArrayList<>();
+        for (String forbidden : HAND_MADE_DATA) {
+            offences.addAll(CheckSources.linesContaining(checkFiles, forbidden));
+        }
+
+        assertThat(offences)
+                .as("checks must take their data from the recipes in test-data; found: %s", String.join(" | ", offences))
                 .isEmpty();
     }
 }

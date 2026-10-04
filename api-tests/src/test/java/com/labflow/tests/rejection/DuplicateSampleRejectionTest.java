@@ -10,8 +10,9 @@ import com.labflow.common.model.Patient;
 import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleSummary;
 import com.labflow.common.model.SampleType;
+import com.labflow.testdata.SampleDraft;
+import com.labflow.testdata.Samples;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,11 +33,14 @@ class DuplicateSampleRejectionTest extends LabTest {
     @Test
     @DisplayName("A second blood sample under the same order is refused, and the order still holds only the first one")
     void secondSampleOfSameTypeRefused() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Order order = lab.orders().place(patient.id());
         Sample first = lab.samples().register(patient.id(), SampleType.BLOOD, order.id());
 
-        LabResponse<Sample> second = lab.samples().attemptRegister(patient.id(), SampleType.BLOOD.name(), order.id());
+        SampleDraft duplicate = Samples.validFor(patient.id()).inOrder(order.id());
+
+        LabResponse<Sample> second =
+                lab.samples().attemptRegister(duplicate.patientId(), duplicate.rawType(), duplicate.orderId());
 
         assertThat(second)
                 .isRejectedAs(CONFLICT, LabMessages.DUPLICATE_SAMPLE_TYPE)
@@ -56,7 +60,7 @@ class DuplicateSampleRejectionTest extends LabTest {
     @Test
     @DisplayName("A tissue sample is accepted under an order that already holds a blood sample, so the rule is about the type")
     void sampleOfOtherTypeAccepted() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Order order = lab.orders().place(patient.id());
         Sample blood = lab.samples().register(patient.id(), SampleType.BLOOD, order.id());
 

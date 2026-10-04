@@ -77,16 +77,16 @@ After each slice:
     - Stop the lab and delete scratch files.
     - **[Agent: testing-expert]**
 
-- [ ] **Slice 2: One Shared Set of Test-Data Recipes**
+- [x] **Slice 2: One Shared Set of Test-Data Recipes**
 
   > Patients, orders and samples for every check come from one `test-data` module with valid defaults. Every generated name starts with `TEST-`. (FS §2.4)
 
-  - [ ] Task: Create the `test-data` module (depends on `common` only).
+  - [x] Task: Create the `test-data` module (depends on `common` only).
     - Add it to the root `<modules>` after `common` and to `dependencyManagement`.
     - Add it at test scope to `api-tests` and `ui-tests`.
     - Add `junit-jupiter` (test) for its own unit tests.
     - **[Agent: github-actions-cicd]**
-  - [ ] Task: Write the recipes in `test-data/src/main/java/com/labflow/testdata/`.
+  - [x] Task: Write the recipes in `test-data/src/main/java/com/labflow/testdata/`.
     - `UniqueData.name(kind)` returns `TEST-<kind>-<uuid>`, with `TEST_PREFIX`.
     - `PatientDraft` + `Patients.valid()`, with `withName`, `withoutName`, `blankName`.
     - `OrderDraft` + `Orders.validFor(patientId)`, with `withoutPatient`.
@@ -95,7 +95,7 @@ After each slice:
     - Unit tests: uniqueness, prefix, valid defaults, each variation.
     - RED-validate.
     - **[Agent: general-purpose]**
-  - [ ] Task: Move every check to the recipes.
+  - [x] Task: Move every check to the recipes.
     - Add `newPatient()` to `LabTest` and update `UiTest.newPatient()` to use `Patients.valid()`.
     - Replace every inline `UniqueData.name(...)` and hand-written name or raw value in `happy/` and `rejection/` in both modules with recipes.
     - Delete both local `UniqueData` copies.
@@ -103,10 +103,10 @@ After each slice:
     - Add a rule to that guard: check files contain no `UUID.randomUUID` and no hand-written name prefixes such as `"ui-patient"` / `"patient-"`.
     - RED-validate the new rule.
     - **[Agent: testing-expert]**
-  - [ ] Verify:
+  - [x] Verify:
     - Start the lab on 18080.
     - Run `./mvnw clean test -DbaseUrl=http://localhost:18080 -fae`. Expect green; quote the per-module `Tests run` lines, including `test-data`.
-    - `curl` `GET /api/patients` with the default key: patient names created during the run start with `TEST-`.
+    - The lab has no patient list (`GET /api/patients` is 405), so prove the `TEST-` names directly: register one patient the way `LabTest.newPatient()` does (a `Patients.valid()` name), then `curl` `GET /api/patients/<id>` and show the name starts with `TEST-`. Also quote the green `test-data` unit tests.
     - `grep -rn "UniqueData" api-tests/src ui-tests/src` shows only imports from `com.labflow.testdata`.
     - Stop the lab and delete scratch files.
     - **[Agent: testing-expert]**
