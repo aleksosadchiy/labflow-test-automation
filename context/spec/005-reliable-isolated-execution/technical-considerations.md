@@ -251,7 +251,7 @@ The changes are in `ui-tests/.../support/BrowserExtension.java`:
 - **Acceptance proofs**, recorded in the README and the verify report:
   1. Run each documented label command once and record the `Tests run` totals and the `Lab checks run: N` line. Also run `-Dgroups=nosuch` and record `Lab checks run: 0`.
   2. Run `./mvnw test -Dgroups=regression` three times in a row on one lab with the default settings: all green.
-  3. Timing: one warm-up run, then the median of 3 for the default and for `-DchecksAtOnce=1`, using Maven's `Total time:` line. Record the core count. Time smoke the same way to check it is under a third of regression.
+  3. Timing: one warm-up run, then the median of 3 for the default and for `-DchecksAtOnce=1`, using Maven's `Total time:` line. Record the core count. Time smoke the same way, for information only (FS Change Log: the smoke-vs-regression time criterion was removed).
   4. Concurrency cap: with `-DchecksAtOnce=2`, the distinct `[thread]` names on check lines in `target/logs/*.log` number at most 2. With the default, there is more than 1.
   5. Run `-Dbrowser=webkit` once, all screen checks green. Check the unknown browser and unknown environment messages.
   6. After a `-DlogBodies=true` full run, grep for the key, the password and every `TEST-patient-` name across `target/logs`, `target/surefire-reports` and console output: 0 hits.

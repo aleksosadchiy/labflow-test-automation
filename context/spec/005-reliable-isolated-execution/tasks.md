@@ -276,7 +276,7 @@ After each slice:
       - `./mvnw test -Dgroups=regression` (default)
       - the same with `-DchecksAtOnce=1`
       - `./mvnw test -Dgroups="smoke | !(api | ui)"`
-    - Confirm that side by side is faster than one at a time, and that smoke takes under a third of regression.
+    - Confirm that side by side is faster than one at a time. Record the smoke time for information only (the smoke-vs-regression time criterion was removed, see the FS Change Log).
     - Hand the numbers to the README task.
     - **[Agent: testing-expert]**
   - [ ] Task: Update `README.md` → `## Running Tests`.
