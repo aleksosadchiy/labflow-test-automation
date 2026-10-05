@@ -8,6 +8,8 @@ import org.junit.platform.launcher.LauncherSessionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * Runs the lab pre-flight once, when the JUnit Platform opens its session, before any screen
  * check is discovered or executed. If the lab is down or rejects the key, the exception aborts
@@ -30,12 +32,27 @@ public class UiPreflightListener implements LauncherSessionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(UiPreflightListener.class);
 
+    private static final AtomicBoolean ANNOUNCED = new AtomicBoolean();
+
     @Override
     public void launcherSessionOpened(LauncherSession session) {
-        LabConfig config = LabConfig.fromEnvironment();
-        BrowserChoice browser = BrowserChoice.fromEnvironment();
-        LOG.info(banner(config, browser));
-        LabPreflight.check(config);
+        runOnce(ANNOUNCED, () -> {
+            LabConfig config = LabConfig.fromEnvironment();
+            BrowserChoice browser = BrowserChoice.fromEnvironment();
+            LOG.info(banner(config, browser));
+            LabPreflight.check(config);
+        });
+    }
+
+    /**
+     * Runs {@code action} only for the first caller of a guard. Self-tests start nested launcher
+     * sessions in the same JVM and {@code ServiceLoader} registers this listener for each, so
+     * without the guard the banner and the lab probe would repeat once per nested session.
+     */
+    static void runOnce(AtomicBoolean guard, Runnable action) {
+        if (guard.compareAndSet(false, true)) {
+            action.run();
+        }
     }
 
     /** The one-line settings banner. The key is never read: it is always shown as {@code ***}. */

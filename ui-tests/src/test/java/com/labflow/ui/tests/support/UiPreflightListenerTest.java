@@ -10,6 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,5 +40,17 @@ class UiPreflightListenerTest {
         assertThat(UiPreflightListener.banner(config, BrowserChoice.CHROMIUM))
                 .contains("key=***")
                 .doesNotContain(SECRET);
+    }
+
+    @Test
+    @DisplayName("A second (nested) launcher session does not announce or probe again")
+    void onlyTheFirstSessionRunsTheAction() {
+        AtomicBoolean guard = new AtomicBoolean();
+        AtomicInteger runs = new AtomicInteger();
+
+        UiPreflightListener.runOnce(guard, runs::incrementAndGet);
+        UiPreflightListener.runOnce(guard, runs::incrementAndGet);
+
+        assertThat(runs).hasValue(1);
     }
 }

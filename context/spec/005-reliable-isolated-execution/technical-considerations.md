@@ -1,7 +1,7 @@
 # Technical Specification: Reliable, Isolated Runs with Settings and a Run Log
 
 - **Functional Specification:** [functional-spec.md](./functional-spec.md)
-- **Status:** In Review
+- **Status:** Completed
 - **Author(s):** Alex, with the `testing-expert` and `github-actions-cicd` specialists
 
 ---

@@ -9,6 +9,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -46,5 +48,17 @@ class LabPreflightListenerTest {
         assertThatThrownBy(() -> LabConfig.load(Map.<String, String>of("environment", "nope")::get, Map.<String, String>of()::get))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Unknown environment 'nope'. Known: local, ci");
+    }
+
+    @Test
+    @DisplayName("A second (nested) launcher session does not announce or probe again")
+    void onlyTheFirstSessionRunsTheAction() {
+        AtomicBoolean guard = new AtomicBoolean();
+        AtomicInteger runs = new AtomicInteger();
+
+        LabPreflightListener.runOnce(guard, runs::incrementAndGet);
+        LabPreflightListener.runOnce(guard, runs::incrementAndGet);
+
+        assertThat(runs).hasValue(1);
     }
 }
