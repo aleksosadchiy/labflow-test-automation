@@ -1,6 +1,5 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.rejection;
 
 import com.labflow.client.http.LabResponse;
@@ -11,7 +10,6 @@ import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleType;
 import com.labflow.common.model.WorkflowStage;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -67,7 +65,7 @@ class NotReadyRejectionTest extends LabTest {
     @EnumSource(TooEarly.class)
     @DisplayName("A result or report asked for before its stage is refused with the matching \"not ready yet\" message")
     void requestedTooEarlyIsRefused(TooEarly request) {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Sample sample = lab.samples().register(patient.id(), SampleType.BLOOD);
         if (request.stage != ACCESSIONED) {
             lab.samples().walkTo(sample.id(), request.stage);

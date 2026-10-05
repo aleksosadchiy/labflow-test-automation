@@ -1,17 +1,19 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.rejection;
 
 import com.labflow.client.LabClient;
 import com.labflow.client.http.LabResponse;
 import com.labflow.common.LabMessages;
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleType;
 import com.labflow.common.model.WorkflowStage;
+import com.labflow.testdata.Patients;
+import com.labflow.testdata.SampleDraft;
+import com.labflow.testdata.Samples;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -79,7 +81,7 @@ class AuthenticationRejectionTest extends LabTest {
         REGISTER_PATIENT("registering a patient is refused, and no patient is issued") {
             @Override
             Attempt attempt(LabClient valid, LabClient caller) {
-                LabResponse<Patient> response = caller.patients().attemptRegister(UniqueData.name("patient"));
+                LabResponse<Patient> response = caller.patients().attemptRegister(Patients.valid().name());
                 // The lab lists no patients, so a check cannot look for the refused one. What it
                 // can observe is that no Location header and no patient came back; that is
                 // asserted for every case below.
@@ -89,10 +91,12 @@ class AuthenticationRejectionTest extends LabTest {
         REGISTER_SAMPLE("registering a sample is refused, and the patient still has none") {
             @Override
             Attempt attempt(LabClient valid, LabClient caller) {
-                Patient patient = valid.patients().register(UniqueData.name("patient"));
+                Patient patient = valid.patients().register(Patients.valid().name());
+
+                SampleDraft sample = Samples.validFor(patient.id());
 
                 LabResponse<Sample> response =
-                        caller.samples().attemptRegister(patient.id(), SampleType.BLOOD.name());
+                        caller.samples().attemptRegister(sample.patientId(), sample.rawType());
 
                 return new Attempt(response, () -> Assertions.assertThat(valid.samples().listFor(patient.id()))
                         .as("samples the lab holds for the patient after the refusal")
@@ -103,7 +107,7 @@ class AuthenticationRejectionTest extends LabTest {
         MOVE_SAMPLE("moving a sample to its next stage is refused, and it stays at Accessioned") {
             @Override
             Attempt attempt(LabClient valid, LabClient caller) {
-                Patient patient = valid.patients().register(UniqueData.name("patient"));
+                Patient patient = valid.patients().register(Patients.valid().name());
                 Sample sample = valid.samples().register(patient.id(), SampleType.BLOOD);
 
                 LabResponse<Sample> response =
@@ -152,9 +156,10 @@ class AuthenticationRejectionTest extends LabTest {
     }
 
     @Test
+    @Smoke
     @DisplayName("Looking a sample up without an access key is refused too, and shows nothing of the sample")
     void readWithoutKeyIsRefused() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Sample sample = lab.samples().register(patient.id(), SampleType.BLOOD);
 
         LabResponse<Sample> response = lab.withoutApiKey().samples().attemptFind(sample.id());

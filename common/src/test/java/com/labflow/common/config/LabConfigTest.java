@@ -2,6 +2,7 @@ package com.labflow.common.config;
 
 // @layer: unit
 // @spec: 003-test-automation-foundation
+// @spec: 005-reliable-isolated-execution
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,13 +15,17 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Unit tests for {@link LabConfig} and {@link ApiKey}, per functional-spec.md §2.3
- * (Reaching the Lab): the address and key can be supplied from outside the project, the
- * key only through the environment, the lab's local defaults apply otherwise, and the key
- * value never shows up when the configuration is printed. The two lookups are fed from
- * small maps, so the real process environment is never touched.
+ * Unit tests for {@link LabConfig}, {@link LabEnvironment} and {@link ApiKey}, per spec
+ * 003 functional-spec.md §2.3 (Reaching the Lab) and spec 005 functional-spec.md §2.5
+ * (Settings): the address, key and environment can be supplied from outside the project,
+ * the key only through the environment, the lab's local defaults apply otherwise, an
+ * explicit address beats the environment's address, an unknown environment is rejected
+ * with a clear message, and the key value never shows up when the configuration is
+ * printed. The two lookups are fed from small maps, so the real process environment is
+ * never touched.
  *
  * @spec: 003-test-automation-foundation
+ * @spec: 005-reliable-isolated-execution
  */
 class LabConfigTest {
 
@@ -49,6 +54,88 @@ class LabConfigTest {
 
         assertEquals("http://localhost:8080", config.baseUrl());
         assertEquals("mock-lab-local-token", config.apiKey().reveal());
+        assertEquals(LabEnvironment.LOCAL, config.environment());
+    }
+
+    // ---- environment ----
+
+    @Test
+    // @regression
+    @DisplayName("The local and ci environments are known, print in lower case and both default to the lab's local address")
+    void knownEnvironmentsAndTheirDefaultAddresses() {
+        assertEquals("local", LabEnvironment.LOCAL.displayName());
+        assertEquals("ci", LabEnvironment.CI.displayName());
+        assertEquals("ci", LabEnvironment.CI.toString());
+        assertEquals("http://localhost:8080", LabEnvironment.LOCAL.defaultBaseUrl());
+        assertEquals("http://localhost:8080", LabEnvironment.CI.defaultBaseUrl());
+    }
+
+    @Test
+    // @regression
+    @DisplayName("The environment system property beats the ENVIRONMENT environment variable")
+    void systemPropertyBeatsEnvironmentForTheEnvironment() {
+        LabConfig config = load(Map.of("environment", "ci"), Map.of("ENVIRONMENT", "local"));
+
+        assertEquals(LabEnvironment.CI, config.environment());
+    }
+
+    @Test
+    // @regression
+    @DisplayName("The ENVIRONMENT environment variable beats the default environment")
+    void environmentVariableBeatsDefaultForTheEnvironment() {
+        LabConfig config = load(Map.of(), Map.of("ENVIRONMENT", "ci"));
+
+        assertEquals(LabEnvironment.CI, config.environment());
+    }
+
+    @Test
+    // @regression
+    @DisplayName("A blank environment property or variable counts as unset and falls through")
+    void blankEnvironmentCountsAsUnset() {
+        assertEquals(LabEnvironment.CI,
+                load(Map.of("environment", "  "), Map.of("ENVIRONMENT", "ci")).environment());
+        assertEquals(LabEnvironment.LOCAL,
+                load(Map.of("environment", ""), Map.of("ENVIRONMENT", "\t")).environment());
+    }
+
+    @Test
+    // @regression
+    @DisplayName("The environment name is matched ignoring case and surrounding whitespace")
+    void environmentNameIsCaseInsensitiveAndTrimmed() {
+        assertEquals(LabEnvironment.CI, load(Map.of("environment", "CI"), Map.of()).environment());
+        assertEquals(LabEnvironment.LOCAL, load(Map.of(), Map.of("ENVIRONMENT", "Local")).environment());
+        assertEquals(LabEnvironment.CI, load(Map.of("environment", "  ci \n"), Map.of()).environment());
+    }
+
+    @Test
+    // @regression
+    @DisplayName("Without an explicit address, the environment's default address is used")
+    void environmentSuppliesTheDefaultAddress() {
+        assertEquals(LabEnvironment.CI.defaultBaseUrl(),
+                load(Map.of("environment", "ci"), Map.of()).baseUrl());
+    }
+
+    @Test
+    // @regression
+    @DisplayName("An explicit address beats the environment's address, from the property or the variable")
+    void explicitAddressBeatsTheEnvironment() {
+        assertEquals("http://from-property:1",
+                load(Map.of("environment", "ci", "baseUrl", "http://from-property:1"), Map.of()).baseUrl());
+        assertEquals("http://from-env:2",
+                load(Map.of(), Map.of("ENVIRONMENT", "ci", "BASE_URL", "http://from-env:2")).baseUrl());
+    }
+
+    @Test
+    // @regression
+    @DisplayName("An unknown environment is rejected with a message naming the value and listing the known names")
+    void unknownEnvironmentIsRejected() {
+        IllegalArgumentException fromProperty = assertThrows(IllegalArgumentException.class,
+                () -> load(Map.of("environment", "nope"), Map.of()));
+        assertEquals("Unknown environment 'nope'. Known: local, ci", fromProperty.getMessage());
+
+        IllegalArgumentException fromVariable = assertThrows(IllegalArgumentException.class,
+                () -> load(Map.of(), Map.of("ENVIRONMENT", "Staging")));
+        assertEquals("Unknown environment 'Staging'. Known: local, ci", fromVariable.getMessage());
     }
 
     // ---- lab address ----
@@ -193,7 +280,7 @@ class LabConfigTest {
         assertFalse(String.valueOf(config).contains(SECRET), "String.valueOf leaked the key");
         assertFalse(("config=" + config).contains(SECRET), "concatenation leaked the key");
         assertFalse(String.format("%s", config).contains(SECRET), "String.format leaked the key");
-        assertEquals("LabConfig[baseUrl=http://localhost:18080, apiKey=***]", config.toString());
+        assertEquals("LabConfig[baseUrl=http://localhost:18080, apiKey=***, environment=local]", config.toString());
     }
 
     @Test

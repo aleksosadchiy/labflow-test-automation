@@ -42,6 +42,12 @@
             <groupId>com.labflow</groupId>
             <artifactId>api-client</artifactId>
         </dependency>
+        <!-- The shared test-data recipes; test scope, because only the checks build data. -->
+        <dependency>
+            <groupId>com.labflow</groupId>
+            <artifactId>test-data</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Compile scope: the Page Objects in src/main use it. Version comes from the root. -->
         <dependency>
             <groupId>com.microsoft.playwright</groupId>
@@ -74,6 +80,12 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-testkit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Logging implementation for this module's own tests; config in src/test/resources/logback-test.xml. -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

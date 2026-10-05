@@ -3,9 +3,12 @@
 // @regression
 package com.labflow.ui.tests.support;
 
+import com.labflow.ui.config.BrowserChoice;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.platform.testkit.engine.EngineTestKit;
 
 import java.io.IOException;
@@ -44,28 +47,39 @@ import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
  * <p>Self-cleaning: whatever this test creates under {@code target/ui-failures/}, it deletes
  * before it finishes, pass or fail, so a green run of this test never leaves the directory the
  * completion evidence checks for its own absence.
+ *
+ * <p>{@link Execution @Execution(SAME_THREAD)}: both tests clean up under the same folders, so
+ * when the whole run goes side by side one test's clean-up must not run during the other's
+ * assertions. Both probe runs switch parallel execution off explicitly, so the outer run's
+ * settings cannot change what they prove.
  */
+@Execution(ExecutionMode.SAME_THREAD)
 class BrowserExtensionArtifactsTest {
 
     private static final Path ARTIFACTS_ROOT = Path.of("target", "ui-failures");
 
+    /** Failure artifacts sit one level deeper, under the browser's name (chromium by default). */
+    private static final Path BROWSER_ROOT = ARTIFACTS_ROOT.resolve(BrowserChoice.fromEnvironment().displayName());
+
     @AfterEach
     void cleanUpAnyArtifactsThisTestCreated() throws IOException {
-        deleteRecursively(ARTIFACTS_ROOT.resolve(AlwaysFailingProbe.class.getSimpleName()));
-        deleteRecursively(ARTIFACTS_ROOT.resolve(AlwaysPassingProbe.class.getSimpleName()));
+        deleteRecursively(BROWSER_ROOT.resolve(AlwaysFailingProbe.class.getSimpleName()));
+        deleteRecursively(BROWSER_ROOT.resolve(AlwaysPassingProbe.class.getSimpleName()));
+        deleteDirectoryIfEmpty(BROWSER_ROOT);
         deleteDirectoryIfEmpty(ARTIFACTS_ROOT);
     }
 
     @Test
-    @DisplayName("A failing screen check leaves a screenshot and a trace behind, in a folder named after its scenario")
+    @DisplayName("A failing screen check leaves a screenshot and a trace behind, in a folder named after the browser and its scenario")
     void failingCheckLeavesScreenshotAndTrace() {
         EngineTestKit.engine("junit-jupiter")
                 .selectors(selectClass(AlwaysFailingProbe.class))
+                .configurationParameter("junit.jupiter.execution.parallel.enabled", "false")
                 .execute()
                 .testEvents()
                 .assertStatistics(stats -> stats.started(1).failed(1).succeeded(0));
 
-        Path folder = onlyChildOf(ARTIFACTS_ROOT.resolve(AlwaysFailingProbe.class.getSimpleName()));
+        Path folder = onlyChildOf(BROWSER_ROOT.resolve(AlwaysFailingProbe.class.getSimpleName()));
         assertThat(folder.resolve("screenshot.png"))
                 .as("the failed probe's screenshot")
                 .isRegularFile();
@@ -85,11 +99,12 @@ class BrowserExtensionArtifactsTest {
     void passingCheckLeavesNothing() {
         EngineTestKit.engine("junit-jupiter")
                 .selectors(selectClass(AlwaysPassingProbe.class))
+                .configurationParameter("junit.jupiter.execution.parallel.enabled", "false")
                 .execute()
                 .testEvents()
                 .assertStatistics(stats -> stats.started(1).succeeded(1).failed(0));
 
-        assertThat(ARTIFACTS_ROOT.resolve(AlwaysPassingProbe.class.getSimpleName()))
+        assertThat(BROWSER_ROOT.resolve(AlwaysPassingProbe.class.getSimpleName()))
                 .as("no artifact folder is kept for a check that passed")
                 .doesNotExist();
     }

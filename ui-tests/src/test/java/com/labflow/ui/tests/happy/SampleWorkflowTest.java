@@ -1,6 +1,5 @@
 // @layer: e2e
 // @spec: 004-ui-automation-page-objects
-// @regression
 package com.labflow.ui.tests.happy;
 
 import com.labflow.common.model.Patient;

@@ -1,12 +1,11 @@
 // @layer: e2e
 // @spec: 004-ui-automation-page-objects
-// @regression
 package com.labflow.ui.tests.rejection;
 
 import com.labflow.common.LabMessages;
+import com.labflow.testdata.UniqueData;
 import com.labflow.ui.pages.SampleDetailsPage;
 import com.labflow.ui.tests.support.UiTest;
-import com.labflow.ui.tests.support.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -1,8 +1,8 @@
 // @layer: e2e
 // @spec: 004-ui-automation-page-objects
-// @regression
 package com.labflow.ui.tests.happy;
 
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.SampleType;
 import com.labflow.ui.pages.ReportPage;
@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ReportJourneyTest extends UiTest {
 
     @Test
+    @Smoke
     @DisplayName("Following a sample through every screen from registration to Report Generated shows its finished report")
     void fullJourneyThroughScreensEndsInReport() {
         Patient patient = newPatient();

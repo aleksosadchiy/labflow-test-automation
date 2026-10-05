@@ -1,8 +1,8 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.happy;
 
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Order;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Progress;
@@ -13,7 +13,6 @@ import com.labflow.common.model.StageEntry;
 import com.labflow.common.model.TestResult;
 import com.labflow.common.model.WorkflowStage;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,9 +22,10 @@ import static org.assertj.core.api.Assertions.tuple;
 class FullJourneyTest extends LabTest {
 
     @Test
+    @Smoke
     @DisplayName("The whole journey works: patient, order, sample, every stage, result and report, all belonging to the sample registered")
     void wholeJourneyFromPatientToReport() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Order order = lab.orders().place(patient.id());
         Sample registered = lab.samples().register(patient.id(), SampleType.BLOOD, order.id());
         assertThat(registered.orderId()).isEqualTo(order.id());

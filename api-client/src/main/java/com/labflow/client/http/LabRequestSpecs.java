@@ -24,6 +24,10 @@ import java.io.PrintStream;
  * {@link LabJson} mapper, connect and read timeouts, and a log configuration that
  * blacklists the {@code Authorization} header. RestAssured logging itself stays off
  * unless a caller asks for it with {@code .log()}.
+ *
+ * <p>Every specification also carries a {@link RequestLogFilter}, so each request through
+ * the client writes one line (no headers, no names) to the run log. Its body setting
+ * ({@code -DlogBodies} / {@code LOG_BODIES}) is read each time a specification is built.
  */
 public final class LabRequestSpecs {
 
@@ -75,7 +79,8 @@ public final class LabRequestSpecs {
                 .baseUri(baseUrl)
                 .config(config)
                 .contentType(ContentType.JSON)
-                .accept(ContentType.JSON);
+                .accept(ContentType.JSON)
+                .filter(RequestLogFilter.fromEnvironment());
         if (key != null) {
             // The one place the raw key is read: it goes straight into the header.
             spec.header("Authorization", "Bearer " + key.reveal());

@@ -12,6 +12,7 @@ import com.labflow.client.http.UnexpectedResponseError;
 import com.labflow.client.support.StubLab;
 import com.labflow.common.config.ApiKey;
 import com.labflow.common.config.LabConfig;
+import com.labflow.common.config.LabEnvironment;
 import com.labflow.common.model.Order;
 import com.labflow.common.model.SampleSummary;
 import com.labflow.common.model.SampleType;
@@ -55,7 +56,7 @@ class OrderServiceTest {
     @BeforeEach
     void startLab() {
         lab = StubLab.start();
-        client = LabClient.create(new LabConfig(lab.baseUrl(), new ApiKey(KEY)));
+        client = LabClient.create(new LabConfig(lab.baseUrl(), new ApiKey(KEY), LabEnvironment.LOCAL));
     }
 
     @AfterEach

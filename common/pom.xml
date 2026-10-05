@@ -12,12 +12,44 @@
 
     <artifactId>common</artifactId>
     <name>common</name>
-    <description>The lab's shared concepts: model, workflow stages, configuration, exact messages. No third-party runtime dependencies.</description>
+    <description>The lab's shared concepts (model, workflow stages, configuration, exact messages) and JUnit helpers; its only runtime dependency is slf4j-api.</description>
 
     <dependencies>
+        <!-- Logging API only (no implementation): the run-log code writes through it. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <!-- JUnit API to compile the label annotations (com.labflow.common.junit). Provided: not passed
+             on at runtime, because api-tests and ui-tests already bring JUnit at test scope. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- JUnit Platform engine API to compile ChecksAtOnceStrategy (how many checks run at once).
+             Provided for the same reason: the test modules' JUnit already brings it at runtime. -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-engine</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Runs throwaway probe checks through the real Jupiter engine (CheckNameInterceptorTest). -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-testkit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Logging implementation for this module's own tests; config in src/test/resources/logback-test.xml. -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

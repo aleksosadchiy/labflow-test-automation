@@ -1,6 +1,5 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.happy;
 
 import com.labflow.common.model.Patient;
@@ -12,7 +11,6 @@ import com.labflow.common.model.StageEntry;
 import com.labflow.common.model.TestResult;
 import com.labflow.common.model.WorkflowStage;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +21,7 @@ class SampleProgressionTest extends LabTest {
     @Test
     @DisplayName("A sample moves through all seven remaining stages one at a time, and its progress lists all eight in order")
     void movesThroughAllSevenStagesOneAtATime() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Sample registered = lab.samples().register(patient.id(), SampleType.BLOOD);
         assertThat(registered.status()).isEqualTo(WorkflowStage.ACCESSIONED);
 
@@ -59,7 +57,7 @@ class SampleProgressionTest extends LabTest {
     @Test
     @DisplayName("A sample's test result becomes available at Result Ready, with its sample id, test name and result value")
     void resultAvailableAtResultReady() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Sample registered = lab.samples().register(patient.id(), SampleType.SWAB);
 
         Sample atResultReady = lab.samples().walkTo(registered.id(), WorkflowStage.RESULT_READY);
@@ -74,7 +72,7 @@ class SampleProgressionTest extends LabTest {
     @Test
     @DisplayName("A sample's report becomes available at Report Generated, with sample id, test name, result value and generation time, and the earlier result still matches it")
     void reportAvailableAtReportGenerated() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Sample registered = lab.samples().register(patient.id(), SampleType.TISSUE);
 
         Sample atReportGenerated = lab.samples().walkTo(registered.id(), WorkflowStage.REPORT_GENERATED);

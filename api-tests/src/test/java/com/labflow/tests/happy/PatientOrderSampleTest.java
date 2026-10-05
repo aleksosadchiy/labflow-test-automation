@@ -1,15 +1,15 @@
 // @layer: integration
 // @spec: 003-test-automation-foundation
-// @regression
 package com.labflow.tests.happy;
 
+import com.labflow.common.junit.Smoke;
 import com.labflow.common.model.Order;
 import com.labflow.common.model.Patient;
 import com.labflow.common.model.Sample;
 import com.labflow.common.model.SampleType;
 import com.labflow.common.model.WorkflowStage;
+import com.labflow.testdata.Patients;
 import com.labflow.tests.support.LabTest;
-import com.labflow.tests.support.UniqueData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +21,7 @@ class PatientOrderSampleTest extends LabTest {
     @Test
     @DisplayName("A registered patient can be looked up with its lab-assigned id and name")
     void registeredPatientCanBeLookedUp() {
-        String name = UniqueData.name("patient");
+        String name = Patients.valid().name();
 
         Patient registered = lab.patients().register(name);
         Patient found = lab.patients().find(registered.id());
@@ -33,7 +33,7 @@ class PatientOrderSampleTest extends LabTest {
     @Test
     @DisplayName("A placed order can be looked up for its patient, with a creation time and no samples yet")
     void placedOrderCanBeLookedUp() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
 
         Order placed = lab.orders().place(patient.id());
         Order found = lab.orders().find(placed.id());
@@ -47,7 +47,7 @@ class PatientOrderSampleTest extends LabTest {
     @Test
     @DisplayName("A sample registered under an order can be looked up and is listed by its order and its patient")
     void registeredSampleCanBeLookedUp() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
         Order order = lab.orders().place(patient.id());
 
         Sample registered = lab.samples().register(patient.id(), SampleType.BLOOD, order.id());
@@ -69,9 +69,10 @@ class PatientOrderSampleTest extends LabTest {
     }
 
     @Test
+    @Smoke
     @DisplayName("A newly registered sample starts at the Accessioned stage")
     void newSampleIsAccessioned() {
-        Patient patient = lab.patients().register(UniqueData.name("patient"));
+        Patient patient = newPatient();
 
         Sample registered = lab.samples().register(patient.id(), SampleType.TISSUE);
         Sample found = lab.samples().find(registered.id());
