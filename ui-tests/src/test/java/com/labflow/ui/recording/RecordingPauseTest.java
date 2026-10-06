@@ -10,6 +10,8 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Route;
 import com.microsoft.playwright.Tracing;
+import com.labflow.ui.config.BrowserChoice;
+import com.labflow.ui.tests.support.BrowserExtension;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for {@link RecordingPause} (tech spec §2.5), against a real headless Chromium:
+ * Unit tests for {@link RecordingPause} (tech spec §2.5), against a real headless browser (the one {@code BROWSER} picks):
  * Playwright offers no "is tracing on" query, so the no-op detection relies on real driver
  * behaviour that only a real browser can pin down. No lab is needed; pages are inline HTML.
  *
@@ -64,7 +66,7 @@ class RecordingPauseTest {
     @BeforeAll
     static void launchBrowser() {
         playwright = Playwright.create();
-        browser = playwright.chromium().launch();
+        browser = BrowserExtension.browserType(playwright, BrowserChoice.fromEnvironment()).launch();
     }
 
     @AfterAll

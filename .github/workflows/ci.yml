@@ -1,0 +1,345 @@
+# CI for the lab test-automation framework (spec 006).
+#   Build           compiles everything and runs the lab-free self-checks.
+#   Workflow checks starts its own Mock Lab and runs the api-tests regression set.
+#   Screen checks   installs a browser, starts its own Mock Lab and runs the
+#                   ui-tests regression set. It runs in parallel with Workflow checks.
+name: CI
+
+on:
+  # Every push, on any branch, gets a verdict on its commit.
+  push:
+  # A merge request into main also shows the verdict on the PR page.
+  pull_request:
+    branches: [main]
+  # A hand-started run from the Actions tab. "family" picks which check job(s)
+  # run; "browser" picks the browser for the Screen checks job.
+  workflow_dispatch:
+    inputs:
+      family:
+        description: Which checks to run
+        type: choice
+        options: [both, api, ui]
+        default: both
+      browser:
+        description: Browser for the screen checks
+        type: choice
+        options: [chromium, webkit]
+        default: chromium
+
+# Least privilege: the jobs only need to read the code. The run summary goes
+# through $GITHUB_STEP_SUMMARY, which needs no extra permission (no checks: write).
+permissions:
+  contents: read
+
+# No "concurrency" block on purpose: when two changes are pushed quickly, both
+# runs finish, so every commit gets its own verdict (FS 2.1, the user's decision).
+
+jobs:
+  build:
+    name: Build
+    # Pinned rather than ubuntu-latest, so the runner image cannot change under us.
+    runs-on: ubuntu-24.04
+    # A hung job is stopped instead of burning runner minutes (FS 2.6).
+    timeout-minutes: 15
+    steps:
+      # Epoch seconds at job start, for the duration line in the summary below.
+      - name: Record the job start
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      # Temurin JDK 17 (the project's Java version). cache: maven restores
+      # ~/.m2/repository keyed on every pom.xml, so repeat runs skip downloads.
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Compile main and test code of every reactor module. -B = batch mode
+      # (no colours or prompts), -ntp = no download-progress noise in the log.
+      - name: Compile everything
+        run: ./mvnw -B -ntp test-compile
+
+      # Lab-free self-checks only. The api-tests and ui-tests modules run a
+      # pre-flight listener that needs a running lab before any tag filter
+      # applies, so their self-checks run in the check jobs that start a lab.
+      - name: Run the lab-free self-checks
+        run: ./mvnw -B -ntp test -pl common,test-data,api-client
+
+      # The Maven cache (~/.m2) is saved by Build, so Build must download
+      # everything the check jobs need - including the lab's Spring Boot
+      # dependencies (mock-lab-app is not in the root reactor). It also fails
+      # fast if the lab itself does not compile. The check jobs still build
+      # the jar themselves via lab.sh - now from the warm cache.
+      - name: Build the Mock Lab (and cache its dependencies)
+        run: cd mock-lab-app && ./mvnw -B -ntp -q package -DskipTests
+
+      # always(): the summary is most useful exactly when a check failed.
+      # tee -a: the same Markdown goes to the run page AND into this step's log.
+      # One summary per module, each reading only that module's own reports.
+      - name: Summarise results
+        if: always()
+        run: |
+          python3 .github/scripts/junit_summary.py "Build: common" common/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 .github/scripts/junit_summary.py "Build: test-data" test-data/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 .github/scripts/junit_summary.py "Build: api-client" api-client/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  api-tests:
+    name: Workflow checks
+    # Runs only after Build is green: a broken build skips this job, so the run
+    # page shows Build as the failed step (FS 2.2).
+    needs: build
+    # Push and PR runs always include it; a hand-started run skips it when the
+    # engineer picked family=ui.
+    if: github.event_name != 'workflow_dispatch' || inputs.family != 'ui'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Job-level env reaches every step, so the lab (started by lab.sh) and the
+    # framework (run by Maven) see exactly the same values.
+    env:
+      # Spec 005 environment name; the run banner prints it.
+      ENVIRONMENT: ci
+      # The lab this job starts on its own runner VM, so port 8080 never collides.
+      BASE_URL: http://localhost:8080
+      # API_TOKEN is not set here on purpose: the "Choose the access key" step
+      # sets it, so it is masked before any step header could print it.
+    steps:
+      # Epoch seconds at job start, for the duration line in the summary below.
+      - name: Record the job start
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      # Picks the access key for the lab AND the framework: the repository secret
+      # if one is set, otherwise the lab's documented local key (public, not a
+      # secret), read from application.yml's ${API_TOKEN:<default>} placeholder so
+      # there is one source of truth and no key literal in this file. The fallback
+      # is required, not cosmetic: an unset secret expands to "" and Spring's
+      # ${API_TOKEN:default} only falls back when the variable is *missing*, so the
+      # lab would accept an empty key while the framework treats blank as unset
+      # and sends the default -> every check gets 401. One value feeds both sides.
+      # The key is masked BEFORE it goes into $GITHUB_ENV, so every later step
+      # (whose env header lists API_TOKEN) shows ***. Self-contained: the Screen
+      # checks job below carries an identical copy (after its checkout).
+      - name: Choose the access key
+        env:
+          # An unset secret is "", and secret values are always masked by GitHub.
+          SECRET_API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          DEFAULT=$(sed -n 's/.*\${API_TOKEN:\([^}]*\)}.*/\1/p' mock-lab-app/src/main/resources/application.yml | head -n 1)
+          KEY="${SECRET_API_TOKEN:-$DEFAULT}"
+          if [ -z "$KEY" ]; then
+            echo "::error::No access key: the API_TOKEN secret is unset and no \${API_TOKEN:<default>} was found in mock-lab-app/src/main/resources/application.yml"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          echo "API_TOKEN=$KEY" >> "$GITHUB_ENV"
+          if [ -n "$SECRET_API_TOKEN" ]; then
+            echo "Access key: the API_TOKEN repository secret"
+          else
+            echo "Access key: the lab default from application.yml (no API_TOKEN secret set)"
+          fi
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Builds the lab jar, starts it in the background and waits until /health
+      # answers 200 (seed data loaded), failing with a clear annotation after 60 s.
+      # The lab inherits API_TOKEN from $GITHUB_ENV (set by "Choose the access key").
+      - name: Start the Mock Lab
+        run: .github/scripts/lab.sh start
+
+      # -pl api-tests -am: this module plus the modules it depends on.
+      # The tag filter selects the regression lab checks plus this module's own
+      # self-checks (untagged by api/ui). Those self-checks run here, not in Build,
+      # because the pre-flight listener needs a running lab before any filter applies.
+      - name: Run the workflow checks
+        run: ./mvnw -B -ntp -pl api-tests -am test -Dgroups="regression | !(api | ui)"
+
+      # always(): the summary is most useful exactly when a check failed.
+      # tee -a: the same Markdown goes to the run page AND into this step's log.
+      # Only the api-tests module's own reports, so the -am self-checks are not double-counted.
+      - name: Summarise results
+        if: always()
+        run: python3 .github/scripts/junit_summary.py "Workflow checks" api-tests/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): stop the lab whether the checks passed, failed or were cancelled.
+      - name: Stop the Mock Lab
+        if: always()
+        run: .github/scripts/lab.sh stop
+
+      # Evidence kept with the run (FS 2.5), placed after "Stop the Mock Lab" so
+      # lab-startup.log is complete. always(): the results matter most when a
+      # check failed. run_attempt in the name: a re-run uploads a new artifact
+      # instead of clashing with the first attempt's. No retention-days: GitHub's
+      # 90-day default (the user's decision). GitHub does NOT mask artifact
+      # contents; secrets stay out because the framework never writes them
+      # (proven by RunLogSecrecyTest for logs and SignInTraceTest for traces).
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: workflow-checks-results-${{ github.run_attempt }}
+          path: |
+            api-tests/target/surefire-reports/
+            api-tests/target/logs/
+            mock-lab-app/target/lab-startup.log
+          if-no-files-found: warn
+
+  ui-tests:
+    # Plain name on purpose: GitHub does not evaluate the name of a skipped job
+    # (family=api), so an expression here would show raw as "${{ ... }}". The
+    # browser is in the summary title, the cache key and the artifact names.
+    # It is also the name to require in branch protection.
+    name: Screen checks
+    # Same gate as Workflow checks: a broken build skips this job (FS 2.2).
+    needs: build
+    # Push and PR runs always include it; a hand-started run skips it when the
+    # engineer picked family=api.
+    if: github.event_name != 'workflow_dispatch' || inputs.family != 'api'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      ENVIRONMENT: ci
+      # This job's own lab, on its own runner VM: no clash with Workflow checks.
+      BASE_URL: http://localhost:8080
+      # Read by the framework (spec 005) to pick the Playwright browser.
+      BROWSER: ${{ inputs.browser || 'chromium' }}
+      # API_TOKEN is set by the "Choose the access key" step (see Workflow checks).
+    steps:
+      # Epoch seconds at job start, for the duration line in the summary below.
+      - name: Record the job start
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      # Picks the access key for the lab AND the framework: the repository secret
+      # if one is set, otherwise the lab's documented local key (public, not a
+      # secret), read from application.yml's ${API_TOKEN:<default>} placeholder so
+      # there is one source of truth and no key literal in this file. The fallback
+      # is required, not cosmetic: an unset secret expands to "" and Spring's
+      # ${API_TOKEN:default} only falls back when the variable is *missing*, so the
+      # lab would accept an empty key while the framework treats blank as unset
+      # and sends the default -> every check gets 401. One value feeds both sides.
+      # The key is masked BEFORE it goes into $GITHUB_ENV, so every later step
+      # (whose env header lists API_TOKEN) shows ***. Identical copy of the step in
+      # the Workflow checks job (each job is its own VM with its own environment).
+      - name: Choose the access key
+        env:
+          # An unset secret is "", and secret values are always masked by GitHub.
+          SECRET_API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          DEFAULT=$(sed -n 's/.*\${API_TOKEN:\([^}]*\)}.*/\1/p' mock-lab-app/src/main/resources/application.yml | head -n 1)
+          KEY="${SECRET_API_TOKEN:-$DEFAULT}"
+          if [ -z "$KEY" ]; then
+            echo "::error::No access key: the API_TOKEN secret is unset and no \${API_TOKEN:<default>} was found in mock-lab-app/src/main/resources/application.yml"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          echo "API_TOKEN=$KEY" >> "$GITHUB_ENV"
+          if [ -n "$SECRET_API_TOKEN" ]; then
+            echo "Access key: the API_TOKEN repository secret"
+          else
+            echo "Access key: the lab default from application.yml (no API_TOKEN secret set)"
+          fi
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # The browser build Playwright downloads is tied to the Playwright version,
+      # so the version goes into the cache key: bumping it in the pom starts a
+      # fresh cache instead of restoring a browser the new client cannot use.
+      - name: Read the Playwright version
+        id: playwright
+        run: |
+          VERSION=$(sed -n 's:.*<playwright.version>\(.*\)</playwright.version>.*:\1:p' pom.xml | head -n 1)
+          echo "Playwright $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Restores the downloaded browser (Chromium is ~170 MB) from an earlier run,
+      # and saves it at the end of the job if there was no hit. One cache per
+      # OS + Playwright version + browser, so chromium and webkit never mix.
+      - name: Cache the Playwright browser
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ env.BROWSER }}
+
+      # Runs Playwright's own CLI through exec-maven-plugin (root pom, -N = this
+      # pom only, no reactor build). Always runs, even on a cache hit: the cache
+      # holds the browser itself, but --with-deps also apt-installs the Linux
+      # libraries the browser needs, and those live outside the cache path and
+      # vanish with every fresh runner VM. On a hit the browser download is skipped
+      # ("already installed"), so only the apt part costs time.
+      - name: Install the browser
+        run: ./mvnw -B -ntp -N exec:java -Dexec.args="install --with-deps $BROWSER"
+
+      # Same script as in Workflow checks: build the lab jar, start it, wait for /health.
+      - name: Start the Mock Lab
+        run: .github/scripts/lab.sh start
+
+      # -pl ui-tests -am: this module plus the modules it depends on. Same tag
+      # filter as Workflow checks: the regression lab checks plus this module's
+      # own self-checks, which need the running lab for the pre-flight listener.
+      - name: Run the screen checks
+        env:
+          # The browser was installed by the step above. If it is somehow missing,
+          # fail fast with a clear error instead of Playwright silently downloading
+          # every browser (~1 GB) inside the test run and eating the job timeout.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: ./mvnw -B -ntp -pl ui-tests -am test -Dgroups="regression | !(api | ui)"
+
+      # always(): the summary is most useful exactly when a check failed.
+      # tee -a: the same Markdown goes to the run page AND into this step's log.
+      # Only the ui-tests module's own reports, so the -am self-checks are not double-counted.
+      # $BROWSER (job env) puts the browser into the summary title.
+      - name: Summarise results
+        if: always()
+        run: python3 .github/scripts/junit_summary.py "Screen checks ($BROWSER)" ui-tests/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): stop the lab whether the checks passed, failed or were cancelled.
+      - name: Stop the Mock Lab
+        if: always()
+        run: .github/scripts/lab.sh stop
+
+      # Evidence kept with the run (FS 2.5), placed after "Stop the Mock Lab" so
+      # lab-startup.log is complete. always(): the results matter most when a
+      # check failed. run_attempt in the name: a re-run uploads a new artifact
+      # instead of clashing with the first attempt's. No retention-days: GitHub's
+      # 90-day default (the user's decision). GitHub does NOT mask artifact
+      # contents; secrets stay out because the framework never writes them
+      # (proven by RunLogSecrecyTest for logs and SignInTraceTest for traces).
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screen-checks-results-${{ env.BROWSER }}-${{ github.run_attempt }}
+          path: |
+            ui-tests/target/surefire-reports/
+            ui-tests/target/logs/
+            mock-lab-app/target/lab-startup.log
+          if-no-files-found: warn
+
+      # failure(), not always(): pictures and recordings only exist for failed
+      # checks, so a green run uploads nothing. ignore: a failure before the
+      # checks ran (e.g. the lab did not start) has no pictures, and that is fine.
+      - name: Keep the failure pictures and recordings
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screen-failures-${{ env.BROWSER }}-${{ github.run_attempt }}
+          path: ui-tests/target/ui-failures/
+          if-no-files-found: ignore

@@ -8,13 +8,13 @@ _This roadmap outlines the build sequence for a small, production-minded Java te
 
 _Before automation can begin: stand up the system under test. This is a practice project, so there is no existing application to point the framework at yet — that has to be built or chosen first._
 
-- [ ] **Simulated Lab Backend (API Target)**
+- [x] **Simulated Lab Backend (API Target)**
   - [x] **Minimal Mock/Stub API Service:** _(Done in `context/spec/002-mock-lab-rest-api/`: JSON API under `/api` for patients, orders, samples, stage changes, progress, results and reports.)_ Stand up a small local backend (e.g. WireMock stubs, JSON Server, or a lightweight Spring Boot app) exposing REST endpoints for the simulated workflow (patients, orders, samples, processing jobs, results, reports) that enforces the status state machine (Accessioned → ... → Report Generated) and produces the validation/error responses the negative test scenarios need to exercise.
-  - [ ] **Runnable Locally & in CI:** _(Local part done in spec 002: one-command start via the Maven Wrapper and an open `/health` readiness check. Still open: the GitHub Actions job that starts it, which belongs to the Phase 3 CI/CD item.)_ Make sure the backend starts with a single command (or via Docker) on a developer machine and inside the GitHub Actions pipeline, so API tests always have a stable, repeatable target.
+  - [x] **Runnable Locally & in CI:** _(Local part done in spec 002: one-command start via the Maven Wrapper and an open `/health` readiness check. CI part done in `context/spec/006-ci-cd-pipeline/`: each check job starts the lab with `.github/scripts/lab.sh` and waits for `/health`.)_ Make sure the backend starts with a single command (or via Docker) on a developer machine and inside the GitHub Actions pipeline, so API tests always have a stable, repeatable target.
 
-- [ ] **UI Target Application**
-  - [x] **Tiny Front-End Over the Mock Backend:** Build a minimal front-end (Login, Sample List, Create Sample, Sample Details, Report screens) that talks to the mock lab backend, so UI automation exercises the same simulated domain and workflow as the API tests. _(See `context/spec/001-mock-lab-application/`. Underlying domain/service layer also built; the JSON REST API surface and CI-runnability remain open per the other Phase 0 sub-items.)_
-  - [ ] **Stable Test Environment:** Confirm the front-end is reachable and stable enough for repeated automated runs (no CAPTCHAs, no rate-limiting, predictable test data/state), and runnable locally and in CI alongside the backend.
+- [x] **UI Target Application**
+  - [x] **Tiny Front-End Over the Mock Backend:** Build a minimal front-end (Login, Sample List, Create Sample, Sample Details, Report screens) that talks to the mock lab backend, so UI automation exercises the same simulated domain and workflow as the API tests. _(See `context/spec/001-mock-lab-application/`. Underlying domain/service layer also built; the JSON REST API surface was done in spec 002 and CI-runnability in spec 006.)_
+  - [x] **Stable Test Environment:** _(Done in `context/spec/006-ci-cd-pipeline/`: the Screen checks job runs the screens against its own lab on every push and PR.)_ Confirm the front-end is reachable and stable enough for repeated automated runs (no CAPTCHAs, no rate-limiting, predictable test data/state), and runnable locally and in CI alongside the backend.
 
 ---
 
@@ -56,9 +56,9 @@ _Senior-level engineering capabilities: UI automation, reliable parallel executi
 
 _Delivery and review readiness: CI/CD, reporting, documentation, and optional BDD polish._
 
-- [ ] **CI/CD Pipeline**
-  - [ ] **GitHub Actions Workflow:** Automate checkout, build, and test execution, with API and UI tests running as separate, independently schedulable jobs.
-  - [ ] **Test Reporting in CI:** Publish pass/fail/skip/duration summaries (via Surefire, Allure, or JUnit XML) with enough failure detail to investigate issues from CI alone.
+- [x] **CI/CD Pipeline** _(Done in `context/spec/006-ci-cd-pipeline/`.)_
+  - [x] **GitHub Actions Workflow:** Automate checkout, build, and test execution, with API and UI tests running as separate, independently schedulable jobs.
+  - [x] **Test Reporting in CI:** Publish pass/fail/skip/duration summaries (via Surefire, Allure, or JUnit XML) with enough failure detail to investigate issues from CI alone.
 
 - [ ] **Documentation & Review Readiness**
   - [ ] **Project README:** Document the framework's structure, module responsibilities, and how to run tests locally and in CI.

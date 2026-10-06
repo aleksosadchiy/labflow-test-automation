@@ -9,9 +9,11 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Tracing;
 import com.labflow.common.config.LabConfig;
+import com.labflow.ui.config.BrowserChoice;
 import com.labflow.ui.config.UiCredentials;
 import com.labflow.ui.pages.LoginPage;
 import com.labflow.ui.pages.SampleListPage;
+import com.labflow.ui.tests.support.BrowserExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -51,7 +53,7 @@ class SignInTraceTest {
         Path zip = tempDir.resolve("trace.zip");
 
         try (Playwright playwright = Playwright.create();
-             Browser browser = playwright.chromium().launch();
+             Browser browser = BrowserExtension.browserType(playwright, BrowserChoice.fromEnvironment()).launch();
              BrowserContext context = browser.newContext()) {
             context.tracing().start(TraceSettings.startOptions());
             Page page = context.newPage();

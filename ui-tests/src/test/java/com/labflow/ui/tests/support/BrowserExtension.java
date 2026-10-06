@@ -259,7 +259,11 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
         }
     }
 
-    private static BrowserType browserType(Playwright playwright, BrowserChoice choice) {
+    /**
+     * The Playwright engine for {@code choice}. Public so checks that launch their own browser
+     * (the recording unit tests) honour {@code BROWSER} too, instead of assuming Chromium.
+     */
+    public static BrowserType browserType(Playwright playwright, BrowserChoice choice) {
         return switch (choice) {
             case CHROMIUM -> playwright.chromium();
             case WEBKIT -> playwright.webkit();

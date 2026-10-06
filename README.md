@@ -1,12 +1,16 @@
 # Lab Workflow SDET Automation Framework
 
+[![CI](https://github.com/aleksosadchiy/labflow-test-automation/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aleksosadchiy/labflow-test-automation/actions/workflows/ci.yml?query=branch%3Amain)
+
+_The repository is private, so the CI badge renders only for people with access to it._
+
 A small, production-minded Java test automation framework built as a **reference project**. It simulates a simplified, regulated laboratory workflow — Patient → Order → Sample → Processing → Report — and demonstrates REST API automation, UI automation with Page Object Model, parallel test execution, test-data isolation, and CI/CD.
 
 > This is a practice/portfolio project. It does not reproduce any real laboratory's architecture or business logic — see `context/project-brief.md` for the original brief.
 
 ## Status
 
-🚧 In progress. Product definition, roadmap, and architecture are defined (see below); the mock lab application (the system under test) is built and runnable — see [Running the lab](#running-the-lab). The `api-tests` and `ui-tests` modules are scaffolded and green — see [Running Tests](#running-tests).
+🚧 In progress. Product definition, roadmap, and architecture are defined (see below); the mock lab application (the system under test) is built and runnable — see [Running the lab](#running-the-lab). The `api-tests` and `ui-tests` modules are scaffolded and green — see [Running Tests](#running-tests) — and GitHub Actions runs them on every push — see [Continuous integration](#continuous-integration).
 
 ## Project Context
 
@@ -17,7 +21,7 @@ This project is managed with [AWOS](https://github.com/provectus/awos) (`.awos/`
 - **[Architecture](context/product/architecture.md)** — stack decisions and rationale.
 - **[Specialist Agents Coverage](context/product/hired-agents.md)** — which Claude Code subagents are configured for this stack.
 
-## Planned Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
@@ -26,12 +30,12 @@ This project is managed with [AWOS](https://github.com/provectus/awos) (`.awos/`
 | API Automation | RestAssured |
 | UI Automation | Playwright for Java, Page Object Model |
 | Mock System Under Test | Spring Boot + Thymeleaf (in-memory data) |
-| CI/CD | GitHub Actions (separate API/UI jobs) |
+| CI/CD | GitHub Actions: one workflow, a Build job, then separate API (Workflow checks) and UI (Screen checks) jobs in parallel |
 | Logging / Reporting | SLF4J + Logback, Surefire/JUnit XML |
 
 Full rationale and alternatives considered are in [`context/product/architecture.md`](context/product/architecture.md).
 
-## Planned Structure
+## Structure
 
 ```text
 .
@@ -41,7 +45,9 @@ Full rationale and alternatives considered are in [`context/product/architecture
 ├── api-tests/        # Positive/negative API test suites
 ├── ui-tests/         # Page Objects in src/main, screen checks in src/test
 ├── test-data/        # Test-data builders/factories
-└── .github/workflows/tests.yml
+└── .github/
+    ├── workflows/ci.yml  # the CI pipeline
+    └── scripts/          # lab.sh (start/stop the lab), junit_summary.py (job summary)
 ```
 
 ## Running the lab
@@ -54,7 +60,7 @@ The mock lab (`mock-lab-app/`) is the system under test. It needs only a JDK 17+
 cd mock-lab-app && ./mvnw spring-boot:run
 ```
 
-**Or build and run the jar** (the form intended for CI, where it is started in the background with `&`):
+**Or build and run the jar** (the form CI uses: `.github/scripts/lab.sh` starts it in the background and waits for `/health`):
 
 ```bash
 cd mock-lab-app
@@ -238,3 +244,47 @@ Never logged, even with `-DlogBodies=true`: headers, the access key, the sign-in
 ```bash
 grep "<ClassName> › <display name>" api-tests/target/logs/api-tests.log
 ```
+
+## Continuous integration
+
+One GitHub Actions workflow, [`.github/workflows/ci.yml`](.github/workflows/ci.yml), named **CI**. It starts on every push to any branch, on every pull request into `main`, and by hand.
+
+**Three jobs.** Build runs first. The two check jobs need it, so a broken build skips both and the run page shows Build as the failure. After Build they run in parallel, each on its own runner:
+
+| Job | What it runs |
+| --- | --- |
+| **Build** | `./mvnw -B -ntp test-compile`, then the self-checks that need no lab: `./mvnw -B -ntp test -pl common,test-data,api-client` |
+| **Workflow checks** | `./mvnw -B -ntp -pl api-tests -am test -Dgroups="regression \| !(api \| ui)"` |
+| **Screen checks** | Installs the browser with `./mvnw -B -ntp -N exec:java -Dexec.args="install --with-deps <browser>"` (the download is cached between runs), then `./mvnw -B -ntp -pl ui-tests -am test -Dgroups="regression \| !(api \| ui)"` |
+
+Each check job starts its own lab with `.github/scripts/lab.sh start`: it builds the jar, starts it in the background and waits up to 60 s for `/health` to answer `200`. The job stops the lab at the end, whatever the result. The tag filter selects the regression set plus that module's own self-checks. Those self-checks run here rather than in Build because the pre-flight check needs a running lab. `-B -ntp` (batch mode, no download progress) keeps the log readable.
+
+A typical run takes about 3–4 minutes: Build ~35 s, then Workflow checks (~1 min) and Screen checks (~1m45s) side by side. Every job has a 15-minute limit.
+
+**Starting a run by hand.** Go to Actions → CI → Run workflow, then pick `family` and `browser`. `family` is `both`, `api` or `ui` and chooses which check jobs run. `browser` is `chromium` or `webkit` and applies to the screen checks. Push and pull-request runs always run both families on Chromium. From the terminal, with the GitHub CLI:
+
+```bash
+gh workflow run CI -f family=ui -f browser=webkit
+```
+
+**Results.** Each job writes a short summary to the run's page, under the job graph: passed, failed, skipped, how long it took, and a table of failing checks by name. The same text is also in the log of the "Summarise results" step.
+
+**Kept files** are on the run's page under *Artifacts*. GitHub keeps them for its default 90 days:
+
+| Artifact | When | Contents |
+| --- | --- | --- |
+| `workflow-checks-results-<attempt>` | always | `api-tests` Surefire reports, the run log, the lab's start-up log |
+| `screen-checks-results-<browser>-<attempt>` | always | the same for `ui-tests` |
+| `screen-failures-<browser>-<attempt>` | only when the Screen checks job fails | a screenshot and a Playwright trace per failed check |
+
+`<attempt>` is the run attempt, so a re-run keeps its own copy. To open a trace, download and unzip `screen-failures-…`. Then run this from the repository root, or drag the file onto [trace.playwright.dev](https://trace.playwright.dev):
+
+```bash
+./mvnw -N exec:java -Dexec.args="show-trace <path>/trace.zip"
+```
+
+Screen-failure evidence shows made-up `TEST-` patient names on purpose, because it shows the screen exactly as it was; a real regulated system would restrict access to such files or mask the patient column. The access key and the sign-in password never appear in any kept file.
+
+**The access key.** An optional `API_TOKEN` repository secret (Settings → Secrets and variables → Actions) sets the key for both the lab and the checks. Without it, the workflow uses the lab's documented local key, read from the `${API_TOKEN:…}` default in `mock-lab-app/src/main/resources/application.yml`. The fallback is needed because an unset secret arrives as an empty string: Spring would accept the empty key, while the framework treats a blank key as unset and sends the default, so every check would get `401`. The key is masked before any step can print it.
+
+**Blocking merges on a red run** is a repository setting and is not configured here. To turn it on, go to Settings → Branches and add a branch protection rule for `main`. Tick "Require status checks to pass before merging" and select `Build`, `Workflow checks` and `Screen checks`.
