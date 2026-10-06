@@ -1,7 +1,7 @@
 # Functional Specification: Automatic Check Runs on Every Change, with Results You Can Investigate (Phase 3)
 
 - **Roadmap Item:** Phase 3 — CI/CD Pipeline (GitHub Actions Workflow; Test Reporting in CI). Also closes the Phase 0 leftovers "Runnable Locally & in CI" and "Stable Test Environment".
-- **Status:** In Review
+- **Status:** Completed
 - **Author:** Alex
 
 ---
@@ -85,7 +85,7 @@ Success is measured by four things:
 - **As a** reviewer, **I want** the README to explain the automatic run, **so that** I know what it does and how to use it.
   - **Acceptance Criteria:**
     - [x] When a reader opens the README, then they find a short section explaining when automatic runs start, the two check jobs, how to start one by hand, where to find the summary and the kept files, and how to open a failure recording.  _(verified: README `## Continuous integration` (line 248): triggers, the three jobs, Run workflow / `gh workflow run`, summary, artifacts, `show-trace`, `API_TOKEN` secret, branch protection)_
-    - [ ] When a reader opens the README, then a status badge shows whether the latest run on the main line passed.
+    - [x] When a reader opens the README, then a status badge shows whether the latest run on the main line passed.  _(verified 2026-10-06: PR #7 merged as 20faba2; CI run 37421943641 on `main` green (Build, Workflow checks, Screen checks); the engineer confirmed in the browser that the README badge shows green — the private repo serves the badge only to signed-in viewers)_
 
 ---
 
