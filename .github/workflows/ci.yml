@@ -46,8 +46,27 @@ jobs:
       - name: Record the job start
         run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
 
+      # fetch-depth: 0 = the whole history, not just the last commit, so the secret
+      # scan below also sees a secret that was committed once and removed later.
       - name: Check out the code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Secret scan (gitleaks, rules in .gitleaks.toml): fails the build if any
+      # commit holds something that looks like a key, token or password. The
+      # binary is pinned to one release and checked against its published
+      # SHA-256 before it runs, instead of trusting a third-party action.
+      # Dependabot does not see this pin: bump version and checksum together by hand.
+      - name: Scan for committed secrets
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git . --no-banner --redact
 
       # Temurin JDK 17 (the project's Java version). cache: maven restores
       # ~/.m2/repository keyed on every pom.xml, so repeat runs skip downloads.
@@ -57,6 +76,15 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+
+      # Formatting gate (Spotless, configured in both pom.xml files): fails on an
+      # unused import, trailing spaces, a tab or a missing final newline. First,
+      # because it is the cheapest check. Fix locally with `./mvnw spotless:apply`.
+      # The Mock Lab is a separate Maven build, so it is checked separately.
+      - name: Check the formatting
+        run: |
+          ./mvnw -B -ntp spotless:check
+          cd mock-lab-app && ./mvnw -B -ntp spotless:check
 
       # Compile main and test code of every reactor module. -B = batch mode
       # (no colours or prompts), -ntp = no download-progress noise in the log.
@@ -114,35 +142,15 @@ jobs:
       - name: Check out the code
         uses: actions/checkout@v7
 
-      # Picks the access key for the lab AND the framework: the repository secret
-      # if one is set, otherwise the lab's documented local key (public, not a
-      # secret), read from application.yml's ${API_TOKEN:<default>} placeholder so
-      # there is one source of truth and no key literal in this file. The fallback
-      # is required, not cosmetic: an unset secret expands to "" and Spring's
-      # ${API_TOKEN:default} only falls back when the variable is *missing*, so the
-      # lab would accept an empty key while the framework treats blank as unset
-      # and sends the default -> every check gets 401. One value feeds both sides.
-      # The key is masked BEFORE it goes into $GITHUB_ENV, so every later step
-      # (whose env header lists API_TOKEN) shows ***. Self-contained: the Screen
-      # checks job below carries an identical copy (after its checkout).
+      # Sets API_TOKEN for the lab AND the framework: the repository secret if one
+      # is set, otherwise the lab's documented local key. The script masks the key
+      # before exporting it through $GITHUB_ENV (the why is in the script's header).
+      # After the checkout, because the script comes from the repository.
       - name: Choose the access key
         env:
           # An unset secret is "", and secret values are always masked by GitHub.
           SECRET_API_TOKEN: ${{ secrets.API_TOKEN }}
-        run: |
-          DEFAULT=$(sed -n 's/.*\${API_TOKEN:\([^}]*\)}.*/\1/p' mock-lab-app/src/main/resources/application.yml | head -n 1)
-          KEY="${SECRET_API_TOKEN:-$DEFAULT}"
-          if [ -z "$KEY" ]; then
-            echo "::error::No access key: the API_TOKEN secret is unset and no \${API_TOKEN:<default>} was found in mock-lab-app/src/main/resources/application.yml"
-            exit 1
-          fi
-          echo "::add-mask::$KEY"
-          echo "API_TOKEN=$KEY" >> "$GITHUB_ENV"
-          if [ -n "$SECRET_API_TOKEN" ]; then
-            echo "Access key: the API_TOKEN repository secret"
-          else
-            echo "Access key: the lab default from application.yml (no API_TOKEN secret set)"
-          fi
+        run: .github/scripts/access_key.sh
 
       - name: Set up Java 17
         uses: actions/setup-java@v6
@@ -222,35 +230,15 @@ jobs:
       - name: Check out the code
         uses: actions/checkout@v7
 
-      # Picks the access key for the lab AND the framework: the repository secret
-      # if one is set, otherwise the lab's documented local key (public, not a
-      # secret), read from application.yml's ${API_TOKEN:<default>} placeholder so
-      # there is one source of truth and no key literal in this file. The fallback
-      # is required, not cosmetic: an unset secret expands to "" and Spring's
-      # ${API_TOKEN:default} only falls back when the variable is *missing*, so the
-      # lab would accept an empty key while the framework treats blank as unset
-      # and sends the default -> every check gets 401. One value feeds both sides.
-      # The key is masked BEFORE it goes into $GITHUB_ENV, so every later step
-      # (whose env header lists API_TOKEN) shows ***. Identical copy of the step in
-      # the Workflow checks job (each job is its own VM with its own environment).
+      # Sets API_TOKEN for the lab AND the framework: the repository secret if one
+      # is set, otherwise the lab's documented local key. The script masks the key
+      # before exporting it through $GITHUB_ENV (the why is in the script's header).
+      # After the checkout, because the script comes from the repository.
       - name: Choose the access key
         env:
           # An unset secret is "", and secret values are always masked by GitHub.
           SECRET_API_TOKEN: ${{ secrets.API_TOKEN }}
-        run: |
-          DEFAULT=$(sed -n 's/.*\${API_TOKEN:\([^}]*\)}.*/\1/p' mock-lab-app/src/main/resources/application.yml | head -n 1)
-          KEY="${SECRET_API_TOKEN:-$DEFAULT}"
-          if [ -z "$KEY" ]; then
-            echo "::error::No access key: the API_TOKEN secret is unset and no \${API_TOKEN:<default>} was found in mock-lab-app/src/main/resources/application.yml"
-            exit 1
-          fi
-          echo "::add-mask::$KEY"
-          echo "API_TOKEN=$KEY" >> "$GITHUB_ENV"
-          if [ -n "$SECRET_API_TOKEN" ]; then
-            echo "Access key: the API_TOKEN repository secret"
-          else
-            echo "Access key: the lab default from application.yml (no API_TOKEN secret set)"
-          fi
+        run: .github/scripts/access_key.sh
 
       - name: Set up Java 17
         uses: actions/setup-java@v6

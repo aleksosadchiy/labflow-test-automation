@@ -3,7 +3,6 @@ package com.mocklab.web;
 // @layer: integration
 // @spec: 001-mock-lab-application
 
-import com.mocklab.web.AuthController;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

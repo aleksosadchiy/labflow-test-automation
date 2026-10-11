@@ -1,0 +1,15 @@
+# gitleaks configuration: the secret scan that CI's Build job runs over the whole
+# git history (see "Scan for committed secrets" in .github/workflows/ci.yml).
+#
+# The default rule set is used as is. The one exception below covers made-up values
+# in the framework's own tests, which prove that a key or password never reaches a
+# log, a report or a trace. Convention: every fake secret in a test starts with
+# "s3cret-", so it is recognisable to a reader and to this file.
+title = "lab-test-automation"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Made-up secrets in self-tests (the s3cret- prefix marks them as fake)"
+regexes = ['''s3cret-[a-z0-9-]+''']

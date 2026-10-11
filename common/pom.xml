@@ -34,6 +34,13 @@
             <artifactId>junit-platform-engine</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- JUnit Platform launcher API to compile CheckCountListener (the end-of-run count line).
+             Provided again: api-tests and ui-tests bring the launcher themselves at test scope. -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

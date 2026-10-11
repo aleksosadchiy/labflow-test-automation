@@ -52,6 +52,57 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!--
+                Test coverage (JaCoCo): prepare-agent adds a Java agent to the test JVM (through the
+                argLine property Surefire reads) that records which lines the tests execute; report
+                turns that record into target/site/jacoco/ (index.html to read, jacoco.xml for tools)
+                right after the tests. No minimum is enforced on purpose: the number is information,
+                not a target.
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.15</version>
+                <executions>
+                    <execution>
+                        <id>coverage-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coverage-report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                Formatting gate (Spotless), the same rules as the test-automation reactor's root
+                pom.xml (this app is a separate build, so it carries its own copy). Deliberately light rules that match how the code is
+                already written, so there is no mass reformat: no unused imports, no trailing
+                spaces, spaces instead of tabs, a newline at the end of every file.
+                Not bound to a build phase: `./mvnw spotless:check` fails on a violation (CI's Build
+                job runs it) and `./mvnw spotless:apply` fixes the files.
+            -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.10.4</version>
+                <configuration>
+                    <java>
+                        <removeUnusedImports/>
+                        <trimTrailingWhitespace/>
+                        <indent>
+                            <spaces>true</spaces>
+                            <spacesPerTab>4</spacesPerTab>
+                        </indent>
+                        <endWithNewline/>
+                    </java>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

@@ -9,7 +9,7 @@ description: >-
   and annotates tests with @spec and @regression for regression suite
   management.
 model: sonnet
-skills: [playwright, verify-ui]
+skills: [verify-ui]
 ---
 
 # ROLE

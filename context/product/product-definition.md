@@ -69,7 +69,6 @@ The author clones the repository and scaffolds a Maven multi-module project (`co
 - GitHub Actions CI/CD pipeline with separate API/UI jobs and published test results.
 - Logging (via a real logging framework, not `System.out.println`) and test reporting.
 - Documentation: README explaining structure, setup, and how to run tests; clean Git history.
-- Optional: a small Cucumber/Gherkin layer for one or two scenarios, kept minimal and not prioritized over the core items above.
 
 ### 3.2. What's Out-of-Scope (Non-Goals)
 
@@ -80,7 +79,7 @@ The author clones the repository and scaffolds a Maven multi-module project (`co
 - A sophisticated or polished frontend.
 - Production-grade authentication/authorization.
 - Complicated database setups.
-- Heavy Cucumber/BDD abstraction layers beyond a minimal, optional demonstration.
+- A Cucumber/BDD layer: the assignment marks it optional and ranks it last, so it is left out.
 
 ---
 

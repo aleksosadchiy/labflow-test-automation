@@ -10,14 +10,14 @@ A small, production-minded Java test automation framework built as a **reference
 
 ## Status
 
-🚧 In progress. Product definition, roadmap, and architecture are defined (see below); the mock lab application (the system under test) is built and runnable — see [Running the lab](#running-the-lab). The `api-tests` and `ui-tests` modules are scaffolded and green — see [Running Tests](#running-tests) — and GitHub Actions runs them on every push — see [Continuous integration](#continuous-integration).
+✅ Built. Every roadmap item is done and each of the six specs under `context/spec/` is verified against its acceptance criteria. The mock lab application (the system under test) is runnable — see [Running the lab](#running-the-lab). The `api-tests` and `ui-tests` modules run against it — see [Running Tests](#running-tests) — and GitHub Actions runs them on every push — see [Continuous integration](#continuous-integration).
 
 ## Project Context
 
 This project is managed with [AWOS](https://github.com/provectus/awos) (`.awos/`), which drives its planning docs under `context/product/`:
 
 - **[Product Definition](context/product/product-definition.md)** — vision, audience, success metrics, scope.
-- **[Roadmap](context/product/roadmap.md)** — phased build plan, starting with Phase 0 (standing up the mock lab backend + a tiny front-end as the system under test).
+- **[Roadmap](context/product/roadmap.md)** — the phased build plan, from Phase 0 (the mock lab backend + a tiny front-end as the system under test) to the CI pipeline; all of it is done.
 - **[Architecture](context/product/architecture.md)** — stack decisions and rationale.
 - **[Specialist Agents Coverage](context/product/hired-agents.md)** — which Claude Code subagents are configured for this stack.
 
@@ -39,7 +39,7 @@ Full rationale and alternatives considered are in [`context/product/architecture
 
 ```text
 .
-├── mock-lab-app/     # Spring Boot + Thymeleaf system under test (Phase 0)
+├── mock-lab-app/     # Spring Boot + Thymeleaf system under test (a separate Maven build)
 ├── common/           # Shared domain models and utilities
 ├── api-client/       # REST API client layer (RestAssured)
 ├── api-tests/        # Positive/negative API test suites
@@ -47,8 +47,10 @@ Full rationale and alternatives considered are in [`context/product/architecture
 ├── test-data/        # Test-data builders/factories
 └── .github/
     ├── workflows/ci.yml  # the CI pipeline
-    └── scripts/          # lab.sh (start/stop the lab), junit_summary.py (job summary)
+    └── scripts/          # lab.sh (start/stop the lab), access_key.sh (the CI access key), junit_summary.py (job summary)
 ```
+
+Each module has its own short `README.md` saying what it holds and how to run its tests.
 
 ## Running the lab
 
@@ -114,7 +116,7 @@ cd mock-lab-app && ./mvnw spring-boot:run
 ./mvnw -pl api-tests -am test
 ```
 
-`-pl api-tests` selects the checks module, and `-am` ("also make") builds the modules it depends on (`common`, `api-client`) in the same run; without it Maven cannot find them on a fresh clone, because nothing is installed into the local repository.
+`-pl api-tests` selects the checks module, and `-am` ("also make") builds the modules it depends on (`common`, `test-data`, `api-client`) in the same run; without it Maven cannot find them on a fresh clone, because nothing is installed into the local repository.
 
 **Picking what to run.** Every check carries labels: `api` (a lab-workflow check) or `ui` (a screen check), plus `regression`, and a few also carry `smoke`. Pick a subset with Surefire's `-Dgroups=<label expression>`. Quote the expression, because the shell would otherwise read `|` and `!` itself:
 
@@ -178,14 +180,14 @@ Firefox is not supported: Playwright's Firefox does not start on macOS 27, the d
 **Running the screen checks.**
 
 ```bash
-# only the screen checks, plus the framework's quick self-checks (common, api-client)
+# only the screen checks, plus the framework's quick self-checks (common, test-data, api-client)
 ./mvnw -pl ui-tests -am test
 
 # everything: API checks and screen checks together
 ./mvnw clean test
 ```
 
-`./mvnw clean test` now includes `ui-tests` in the reactor. If the API checks fail, add `-fae` ("fail at end") so the build still runs `ui-tests` and reports both verdicts in one run, instead of stopping at the first red module:
+`./mvnw clean test` runs `ui-tests` first and `api-tests` after it (the order of the modules in the root `pom.xml`). If the screen checks fail, Maven stops there and skips `api-tests`. Add `-fae` ("fail at end") so the build still runs it and reports both verdicts in one run:
 
 ```bash
 ./mvnw clean test -fae
@@ -245,6 +247,30 @@ Never logged, even with `-DlogBodies=true`: headers, the access key, the sign-in
 grep "<ClassName> › <display name>" api-tests/target/logs/api-tests.log
 ```
 
+## Formatting, coverage and dependency updates
+
+**Formatting.** [Spotless](https://github.com/diffplug/spotless) keeps a few mechanical rules: no unused imports, no trailing spaces, spaces instead of tabs, and a newline at the end of every file. The rules are deliberately light, so they match how the code is already written. CI's Build job fails on a violation. Run these from the repository root, and again inside `mock-lab-app/` for the lab (it is a separate Maven build):
+
+```bash
+./mvnw spotless:check   # report violations
+./mvnw spotless:apply   # fix them
+```
+
+**Coverage.** [JaCoCo](https://www.jacoco.org/jacoco/) records which lines the tests execute. Every `./mvnw test` writes a report per module; open `index.html` in a browser:
+
+```text
+<module>/target/site/jacoco/index.html
+mock-lab-app/target/site/jacoco/index.html
+```
+
+A module's report counts only that module's own classes. No minimum is enforced: the number is information, not a target.
+
+**Secret scan.** CI's Build job runs [gitleaks](https://github.com/gitleaks/gitleaks) over the whole git history and fails if a commit holds something that looks like a key, token or password. Its settings are in [`.gitleaks.toml`](.gitleaks.toml). The framework's own tests need made-up secrets to prove that nothing leaks; each starts with `s3cret-`, the only pattern the scan lets through. Real values belong in the environment or in a local `.env` file, which git ignores.
+
+**A guard for AI agents.** [`.claude/hooks/block_sensitive_files.py`](.claude/hooks/block_sensitive_files.py) is a Claude Code hook: a script the tool runs before each file or shell action. It refuses to read, copy or edit `.env` files and private keys, so a real secret cannot end up in an agent's conversation.
+
+**Dependency updates.** [`.github/dependabot.yml`](.github/dependabot.yml) asks GitHub's Dependabot to open a weekly pull request with minor and patch updates for the framework, for the lab and for the GitHub Actions the workflow uses. Each pull request runs CI, so an update is merged only when the suite passes against it. Major versions are left out on purpose, because they are migrations to plan. Vulnerability alerts are a repository setting: Settings → Advanced Security → Dependabot alerts.
+
 ## Continuous integration
 
 One GitHub Actions workflow, [`.github/workflows/ci.yml`](.github/workflows/ci.yml), named **CI**. It starts on every push to any branch, on every pull request into `main`, and by hand.
@@ -253,7 +279,7 @@ One GitHub Actions workflow, [`.github/workflows/ci.yml`](.github/workflows/ci.y
 
 | Job | What it runs |
 | --- | --- |
-| **Build** | `./mvnw -B -ntp test-compile`, then the self-checks that need no lab: `./mvnw -B -ntp test -pl common,test-data,api-client` |
+| **Build** | The secret scan (gitleaks), the formatting check (`./mvnw -B -ntp spotless:check`, for the framework and for the lab), then `./mvnw -B -ntp test-compile`, then the self-checks that need no lab: `./mvnw -B -ntp test -pl common,test-data,api-client` |
 | **Workflow checks** | `./mvnw -B -ntp -pl api-tests -am test -Dgroups="regression \| !(api \| ui)"` |
 | **Screen checks** | Installs the browser with `./mvnw -B -ntp -N exec:java -Dexec.args="install --with-deps <browser>"` (the download is cached between runs), then `./mvnw -B -ntp -pl ui-tests -am test -Dgroups="regression \| !(api \| ui)"` |
 

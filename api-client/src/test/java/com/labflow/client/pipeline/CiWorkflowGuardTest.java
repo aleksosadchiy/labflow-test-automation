@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * A framework self-check about the build pipeline (spec 006): pins the decisions in
- * {@code .github/workflows/ci.yml} that cannot be exercised without a real GitHub run, so a
+ * {@code .github/workflows/ci.yml} (and the access-key script it calls) that cannot be exercised without a real GitHub run, so a
  * careless edit shows up in the lab-free Build job instead of as a silently weaker pipeline.
  * Reads the file as plain text (no YAML library, like the other guard tests); lives in
  * api-client because that module's tests run in the Build job and already have AssertJ.
@@ -27,7 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CiWorkflowGuardTest {
 
     private static final Path CI = Path.of("..", ".github", "workflows", "ci.yml");
-    private static final String YAML = read();
+    private static final Path ACCESS_KEY_SCRIPT = Path.of("..", ".github", "scripts", "access_key.sh");
+    private static final String YAML = readFile(CI);
 
     @Test
     @DisplayName("The workflow starts on every push, on pull requests into main, and by hand with a family and a browser choice (FS 2.1)")
@@ -100,11 +101,14 @@ class CiWorkflowGuardTest {
             String job = job(id);
             String env = job.contains("\n    env:") ? section(job, "\n    env:", "\n    steps:") : "";
             assertThat(code(env)).as(id + " job-level env").doesNotContain("API_TOKEN");
-            String choose = step(job, "Choose the access key");
-            assertThat(choose).as(id + " masks before exporting")
-                    .contains("::add-mask::$KEY").contains("API_TOKEN=$KEY\" >> \"$GITHUB_ENV\"");
-            assertThat(choose.indexOf("::add-mask::")).isLessThan(choose.indexOf(">> \"$GITHUB_ENV\""));
+            assertThat(step(job, "Choose the access key")).as(id + " uses the one shared script")
+                    .contains("run: .github/scripts/access_key.sh");
         }
+        String script = readFile(ACCESS_KEY_SCRIPT);
+        assertThat(script).as("the script's local key literal").doesNotContain("mock-lab-local-token");
+        assertThat(script).as("masks before exporting")
+                .contains("::add-mask::$KEY").contains("API_TOKEN=$KEY\" >> \"$GITHUB_ENV\"");
+        assertThat(script.indexOf("echo \"::add-mask::")).isLessThan(script.indexOf("echo \"API_TOKEN="));
     }
 
     @Test
@@ -114,13 +118,37 @@ class CiWorkflowGuardTest {
         assertThat(code(job("build"))).contains("cache: maven");
     }
 
+    @Test
+    @DisplayName("Build checks the formatting of the framework and of the Mock Lab before it compiles anything")
+    void buildChecksTheFormatting() {
+        String check = step(job("build"), "Check the formatting");
+        assertThat(check).contains("./mvnw -B -ntp spotless:check")
+                .contains("cd mock-lab-app && ./mvnw -B -ntp spotless:check");
+        assertThat(job("build").indexOf("- name: Check the formatting"))
+                .isLessThan(job("build").indexOf("- name: Compile everything"));
+    }
+
+    @Test
+    @DisplayName("Build scans the whole git history for secrets with a pinned, checksum-verified scanner")
+    void buildScansForSecrets() {
+        String build = job("build");
+        assertThat(step(build, "Check out the code")).as("whole history, so removed secrets are seen too")
+                .contains("fetch-depth: 0");
+        String scan = step(build, "Scan for committed secrets");
+        assertThat(scan).as("pinned release").containsPattern("GITLEAKS_VERSION: \\d+\\.\\d+\\.\\d+");
+        assertThat(scan).as("pinned checksum").containsPattern("GITLEAKS_SHA256: [0-9a-f]{64}");
+        assertThat(scan.indexOf("sha256sum -c")).as("verified before it runs")
+                .isGreaterThan(0).isLessThan(scan.indexOf("gitleaks\" git"));
+        assertThat(scan).as("found secrets are not printed into the log").contains("--redact");
+    }
+
     // ---- helpers -------------------------------------------------------------------------
 
-    private static String read() {
+    private static String readFile(Path file) {
         try {
-            return Files.readString(CI);
+            return Files.readString(file);
         } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read " + CI.toAbsolutePath() + " (tests must run with the module as working directory)", e);
+            throw new UncheckedIOException("Cannot read " + file.toAbsolutePath() + " (tests must run with the module as working directory)", e);
         }
     }
 

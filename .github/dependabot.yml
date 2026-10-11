@@ -1,0 +1,45 @@
+# Dependabot: GitHub's built-in service that opens a pull request when a dependency
+# has a newer version, and (with "Dependabot alerts" switched on in the repository
+# settings) when a used version has a known vulnerability.
+#
+# Every such pull request runs the CI workflow, so an update is merged only after
+# the whole suite has passed against it.
+#
+# Major versions are ignored on purpose: JUnit 6, RestAssured 6 and Spring Boot 4
+# are migrations to plan, not routine updates. Security updates are not affected
+# by this ignore rule. Minor and patch updates arrive as one grouped pull request
+# per ecosystem, to keep the noise down.
+version: 2
+updates:
+  # The test-automation reactor: versions live in the root pom.xml.
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      framework-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # The Mock Lab (the system under test): a separate Maven build.
+  - package-ecosystem: maven
+    directory: /mock-lab-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      lab-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # The actions used by .github/workflows/ci.yml (pinned to major versions).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

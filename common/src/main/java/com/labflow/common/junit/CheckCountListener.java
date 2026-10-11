@@ -1,6 +1,5 @@
-package com.labflow.ui.tests.support;
+package com.labflow.common.junit;
 
-import com.labflow.common.junit.Labels;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
@@ -24,10 +23,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * there; it is only absent when the labels were set some other way (for example in a POM), in
  * which case the text says {@code all}.
  *
- * <p>Registered by {@code ServiceLoader}
- * ({@code META-INF/services/org.junit.platform.launcher.TestExecutionListener}). Copied between
- * {@code api-tests} and {@code ui-tests}, like the pre-flight listener: {@code common} has no
- * JUnit launcher dependency, and each module registers listeners on its own classpath.
+ * <p>One class for both test modules. Each module registers it on its own classpath through
+ * {@code ServiceLoader} ({@code META-INF/services/org.junit.platform.launcher.TestExecutionListener}),
+ * so {@code common}'s own tests and {@code api-client}'s do not print the line.
  */
 public class CheckCountListener implements TestExecutionListener {
 

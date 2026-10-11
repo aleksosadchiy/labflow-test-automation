@@ -1,12 +1,12 @@
 // @layer: unit
 // @spec: 005-reliable-isolated-execution
 // @regression
-package com.labflow.ui.tests.support;
+package com.labflow.common.junit;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Acceptance check for functional-spec.md section 2.1 (a label that matches nothing): the
@@ -18,13 +18,13 @@ class CheckCountSummaryAcceptanceTest {
     @Test
     @DisplayName("A run that matched no check says 0 checks ran and names the label that was asked for")
     void zeroChecksIsStatedClearly() {
-        assertThat(CheckCountListener.summary(0, "nosuch")).isEqualTo("Lab checks run: 0 (labels: nosuch)");
+        assertEquals("Lab checks run: 0 (labels: nosuch)", CheckCountListener.summary(0, "nosuch"));
     }
 
     @Test
     @DisplayName("A run without a label says how many checks ran and that all labels were in play, so a missing label is not mistaken for zero")
     void noLabelMeansAllLabels() {
-        assertThat(CheckCountListener.summary(25, null)).isEqualTo("Lab checks run: 25 (labels: all)");
-        assertThat(CheckCountListener.summary(25, "  ")).isEqualTo("Lab checks run: 25 (labels: all)");
+        assertEquals("Lab checks run: 25 (labels: all)", CheckCountListener.summary(25, null));
+        assertEquals("Lab checks run: 25 (labels: all)", CheckCountListener.summary(25, "  "));
     }
 }

@@ -54,16 +54,8 @@ _Senior-level engineering capabilities: UI automation, reliable parallel executi
 
 ### Phase 3
 
-_Delivery and review readiness: CI/CD, reporting, documentation, and optional BDD polish._
+_Delivery: CI/CD and test reporting._
 
 - [x] **CI/CD Pipeline** _(Done in `context/spec/006-ci-cd-pipeline/`.)_
   - [x] **GitHub Actions Workflow:** Automate checkout, build, and test execution, with API and UI tests running as separate, independently schedulable jobs.
   - [x] **Test Reporting in CI:** Publish pass/fail/skip/duration summaries (via Surefire, Allure, or JUnit XML) with enough failure detail to investigate issues from CI alone.
-
-- [ ] **Documentation & Review Readiness**
-  - [ ] **Project README:** Document the framework's structure, module responsibilities, and how to run tests locally and in CI.
-  - [ ] **Clean Git History:** Maintain a readable commit history reflecting incremental, well-scoped changes.
-  - [ ] **Architecture Walkthrough Readiness:** Be able to explain every item in the Definition of Done — structure, API layer, UI automation, Page Objects, test-data isolation, parallel execution, CI execution, failure investigation, and production-readiness gaps — and deliver the 2-minute project pitch.
-
-- [ ] **Optional BDD Layer**
-  - [ ] **Minimal Cucumber Demonstration:** Add one or two Gherkin scenarios (Given/When/Then) mapped to step definitions, purely to demonstrate BDD understanding — kept minimal and not prioritized over the items above.
