@@ -10,7 +10,7 @@ A small, production-minded Java test automation framework built as a **reference
 
 ## Status
 
-✅ Built. Every roadmap item is done and each of the six specs under `context/spec/` is verified against its acceptance criteria. The mock lab application (the system under test) is runnable — see [Running the lab](#running-the-lab). The `api-tests` and `ui-tests` modules run against it — see [Running Tests](#running-tests) — and GitHub Actions runs them on every push — see [Continuous integration](#continuous-integration).
+✅ Built. Every roadmap item is done and each of the seven specs under `context/spec/` is verified against its acceptance criteria. The mock lab application (the system under test) is runnable — see [Running the lab](#running-the-lab). The `api-tests` and `ui-tests` modules run against it — see [Running Tests](#running-tests) — and GitHub Actions runs them on every push — see [Continuous integration](#continuous-integration).
 
 ## Project Context
 
@@ -30,8 +30,8 @@ This project is managed with [AWOS](https://github.com/provectus/awos) (`.awos/`
 | API Automation | RestAssured |
 | UI Automation | Playwright for Java, Page Object Model |
 | Mock System Under Test | Spring Boot + Thymeleaf (in-memory data) |
-| CI/CD | GitHub Actions: one workflow, a Build job, then separate API (Workflow checks) and UI (Screen checks) jobs in parallel |
-| Logging / Reporting | SLF4J + Logback, Surefire/JUnit XML |
+| CI/CD | GitHub Actions: one workflow, a Build job, then separate API (Workflow checks) and UI (Screen checks) jobs in parallel, then a Report job |
+| Logging / Reporting | SLF4J + Logback, Surefire/JUnit XML, Allure Report (one visual page per run) |
 
 Full rationale and alternatives considered are in [`context/product/architecture.md`](context/product/architecture.md).
 
@@ -47,7 +47,7 @@ Full rationale and alternatives considered are in [`context/product/architecture
 ├── test-data/        # Test-data builders/factories
 └── .github/
     ├── workflows/ci.yml  # the CI pipeline
-    └── scripts/          # lab.sh (start/stop the lab), access_key.sh (the CI access key), junit_summary.py (job summary)
+    └── scripts/          # lab.sh (start/stop the lab), access_key.sh (the CI access key), junit_summary.py (job summary), report.sh (build the visual report)
 ```
 
 Each module has its own short `README.md` saying what it holds and how to run its tests.
@@ -216,6 +216,8 @@ Both live under `target/`, so `./mvnw clean` removes them. Open a saved trace wi
 
 Sign-in is kept out of every trace on purpose: recording pauses while the real password is typed and submitted, so the lab's password never lands in a screenshot, a trace, or any other output.
 
+The same screenshot and trace are also inside the failed check's entry in the [visual report](#visual-report).
+
 ## Running checks side by side
 
 Checks run several at a time, for both the lab-workflow checks and the screen checks, so the suite stays fast as it grows. By default as many run at once as the machine has processor cores; `-DchecksAtOnce=N` caps that, and `-DchecksAtOnce=1` runs them one after another, which is the way to investigate a confusing failure without other checks running alongside. It is safe because every check makes its own `TEST-…` data and never looks at anyone else's. Each worker thread gets its own Playwright and browser (Playwright for Java is not thread-safe per instance), and every screen check gets its own fresh browser window inside it.
@@ -247,6 +249,40 @@ Never logged, even with `-DlogBodies=true`: headers, the access key, the sign-in
 grep "<ClassName> › <display name>" api-tests/target/logs/api-tests.log
 ```
 
+## Visual report
+
+[Allure Report](https://allurereport.org/) is a widely used open-source tool that turns test results into a browsable HTML page. It is here so that one run can be read, and handed to a reviewer, without opening logs. While the checks run, each lab check writes one small result file into `target/allure-results` at the repository root. Nothing more happens until you ask for the report.
+
+**Build it** with one command, from the repository root, after the checks have run:
+
+```bash
+.github/scripts/report.sh
+```
+
+The last line it prints says where the report is and how many checks it covers. The report is this one self-contained file; the other files the plugin leaves in the same folder are not needed to open it or to share it:
+
+```text
+target/site/allure-maven-plugin/index.html
+```
+
+Open it by double-clicking. It is self-contained, so it needs no server and no network. The first build downloads the report tool into `.allure/` (ignored by git), so that one build needs internet access.
+
+**What it shows that the run-page summary does not.** The summary gives totals and the names of failing checks; the report shows every lab check under its plain-language name with its verdict, duration and labels (`api` or `ui`, `smoke`, `regression`), grouped by family in its Behaviors view ("Workflow checks" and "Screen checks"). A workflow check lists the requests it made to the lab, in order, as the same lines the [run log](#run-log) holds. A failed screen check carries its picture and its recording (the Playwright trace, downloadable from the report and opened as described under [Running Tests](#running-tests)).
+
+**What it lists.** Only the checks that test the lab. The framework's own self-checks never appear; they keep their console and summary output.
+
+**What it never contains.** The access key, the sign-in password, and request or answer content are never in the report; a patient name appears only as a made-up `TEST-` name, in a failure message or in a failed screen check's picture and recording.
+
+**One report covers one run.** Every Maven build that includes the root project (`test`, `test-compile`, even `validate`) first empties the collected results and removes the previous report. That is every command under [Running Tests](#running-tests), because each builds everything or uses `-am`; a `-pl` selection without `-am` leaves the root project out and empties nothing. So build the report straight after the checks, before any other such build. With no results the script says so and builds nothing.
+
+| Run | The report holds |
+| --- | --- |
+| `./mvnw clean test` | both families |
+| `./mvnw -pl api-tests -am test` | the workflow checks only |
+| `./mvnw -pl ui-tests -am test` | the screen checks only |
+
+**Why a script and not a Maven command.** Built through the report plugin's Maven goal alone, Allure Report loads a Google Analytics tag into the page and reports each build to Google. The script switches both off (it sets `ALLURE_NO_ANALYTICS=true`), and fails if the built page still holds the tag.
+
 ## Formatting, coverage and dependency updates
 
 **Formatting.** [Spotless](https://github.com/diffplug/spotless) keeps a few mechanical rules: no unused imports, no trailing spaces, spaces instead of tabs, and a newline at the end of every file. The rules are deliberately light, so they match how the code is already written. CI's Build job fails on a violation. Run these from the repository root, and again inside `mock-lab-app/` for the lab (it is a separate Maven build):
@@ -275,17 +311,18 @@ A module's report counts only that module's own classes. No minimum is enforced:
 
 One GitHub Actions workflow, [`.github/workflows/ci.yml`](.github/workflows/ci.yml), named **CI**. It starts on every push to any branch, on every pull request into `main`, and by hand.
 
-**Three jobs.** Build runs first. The two check jobs need it, so a broken build skips both and the run page shows Build as the failure. After Build they run in parallel, each on its own runner:
+**Four jobs.** Build runs first. The two check jobs need it, so a broken build skips both and the run page shows Build as the failure. After Build they run in parallel, each on its own runner. Report runs last:
 
 | Job | What it runs |
 | --- | --- |
-| **Build** | The secret scan (gitleaks), the formatting check (`./mvnw -B -ntp spotless:check`, for the framework and for the lab), then `./mvnw -B -ntp test-compile`, then the self-checks that need no lab: `./mvnw -B -ntp test -pl common,test-data,api-client` |
+| **Build** | The secret scan (gitleaks), the formatting check (`./mvnw -B -ntp spotless:check`, for the framework and for the lab), then `./mvnw -B -ntp test-compile`, then the self-checks that need no lab: `./mvnw -B -ntp test -pl common,test-data,api-client`. It also builds the lab and fetches the Playwright CLI, so the Maven cache it saves already holds what the check jobs need |
 | **Workflow checks** | `./mvnw -B -ntp -pl api-tests -am test -Dgroups="regression \| !(api \| ui)"` |
 | **Screen checks** | Installs the browser with `./mvnw -B -ntp -N exec:java -Dexec.args="install --with-deps <browser>"` (the download is cached between runs), then `./mvnw -B -ntp -pl ui-tests -am test -Dgroups="regression \| !(api \| ui)"` |
+| **Report** | Collects the result files both check jobs kept and builds the one [visual report](#visual-report) with `.github/scripts/report.sh`. It runs after both check jobs, also when one of them failed or was skipped by a hand-started run. It is skipped when Build failed. It cannot change the run's verdict |
 
 Each check job starts its own lab with `.github/scripts/lab.sh start`: it builds the jar, starts it in the background and waits up to 60 s for `/health` to answer `200`. The job stops the lab at the end, whatever the result. The tag filter selects the regression set plus that module's own self-checks. Those self-checks run here rather than in Build because the pre-flight check needs a running lab. `-B -ntp` (batch mode, no download progress) keeps the log readable.
 
-A typical run takes about 3–4 minutes: Build ~35 s, then Workflow checks (~1 min) and Screen checks (~1m45s) side by side. Every job has a 15-minute limit.
+A typical run takes about 3–4 minutes: Build ~35 s, then Workflow checks (~1 min) and Screen checks (~1m45s) side by side, then Report (~30–40 s). Every job has a 15-minute limit.
 
 **Starting a run by hand.** Go to Actions → CI → Run workflow, then pick `family` and `browser`. `family` is `both`, `api` or `ui` and chooses which check jobs run. `browser` is `chromium` or `webkit` and applies to the screen checks. Push and pull-request runs always run both families on Chromium. From the terminal, with the GitHub CLI:
 
@@ -299,11 +336,18 @@ gh workflow run CI -f family=ui -f browser=webkit
 
 | Artifact | When | Contents |
 | --- | --- | --- |
-| `workflow-checks-results-<attempt>` | always | `api-tests` Surefire reports, the run log, the lab's start-up log |
+| `workflow-checks-results-<attempt>` | always | `api-tests` Surefire reports, the run log, the lab's start-up log, the Allure result files |
 | `screen-checks-results-<browser>-<attempt>` | always | the same for `ui-tests` |
 | `screen-failures-<browser>-<attempt>` | only when the Screen checks job fails | a screenshot and a Playwright trace per failed check |
+| `allure-report-<browser>-<attempt>` | whenever at least one check job kept result files | the visual report: one `index.html` (about 3 MB, about 1.5 MB as a download) |
 
-`<attempt>` is the run attempt, so a re-run keeps its own copy. To open a trace, download and unzip `screen-failures-…`. Then run this from the repository root, or drag the file onto [trace.playwright.dev](https://trace.playwright.dev):
+`<attempt>` is the run attempt, so a re-run keeps its own copy.
+
+**The run's report.** When the report was kept, the Report job's summary on the run's page has one line that says how many checks the report covers and links to it. The link leads to the `allure-report-…` file of that run and attempt and needs a signed-in GitHub user; clicking it downloads a zip, it does not open the report in the browser. Download `allure-report-…` (through that link or under *Artifacts*), unzip it and double-click `index.html`; it opens like a locally built one. It covers the families that ran: both on a push or pull request, one on a hand-started single-family run. Its name carries the selected browser even when only the workflow checks ran. After a re-run, the new attempt's report sits beside the first one and does not replace it. The report is kept only here, as a file; it is not published as a web page.
+
+The Report job is allowed to fail without failing the run. A red Report job on a green run means the report could not be built or kept; the checks themselves passed. The run page then carries an "Allure report missing" warning that gives the reason. When no check job kept any result files, the Report job stays green and shows the same warning.
+
+**A failed screen check's trace.** To open a trace, download and unzip `screen-failures-…`. Then run this from the repository root, or drag the file onto [trace.playwright.dev](https://trace.playwright.dev):
 
 ```bash
 ./mvnw -N exec:java -Dexec.args="show-trace <path>/trace.zip"
@@ -313,4 +357,4 @@ Screen-failure evidence shows made-up `TEST-` patient names on purpose, because 
 
 **The access key.** An optional `API_TOKEN` repository secret (Settings → Secrets and variables → Actions) sets the key for both the lab and the checks. Without it, the workflow uses the lab's documented local key, read from the `${API_TOKEN:…}` default in `mock-lab-app/src/main/resources/application.yml`. The fallback is needed because an unset secret arrives as an empty string: Spring would accept the empty key, while the framework treats a blank key as unset and sends the default, so every check would get `401`. The key is masked before any step can print it.
 
-**Blocking merges on a red run** is a repository setting and is not configured here. To turn it on, go to Settings → Branches and add a branch protection rule for `main`. Tick "Require status checks to pass before merging" and select `Build`, `Workflow checks` and `Screen checks`.
+**Blocking merges on a red run** is a repository setting and is not configured here. To turn it on, go to Settings → Branches and add a branch protection rule for `main`. Tick "Require status checks to pass before merging" and select `Build`, `Workflow checks` and `Screen checks`. Do not select `Report`: it is skipped when Build fails and is allowed to fail on its own, so requiring it would block a merge for a reason that has nothing to do with the lab.

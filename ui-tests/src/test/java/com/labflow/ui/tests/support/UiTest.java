@@ -11,6 +11,7 @@ import com.labflow.testdata.Patients;
 import com.labflow.ui.config.UiCredentials;
 import com.labflow.ui.pages.LoginPage;
 import com.labflow.ui.pages.SampleListPage;
+import io.qameta.allure.Epic;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
@@ -22,8 +23,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
  *
  * <p>Labels: every check inherits {@code ui} and {@code regression} from here (both annotations
  * are {@code @Inherited}), so no check file carries a label of its own except {@code @Smoke} on
- * the few key paths.
+ * the few key paths. {@code @Epic} (also {@code @Inherited}) is the family name the visual report
+ * groups these checks under.
  */
+@Epic("Screen checks")
 @UiCheck
 @Regression
 @ExtendWith({ScenarioNameExtension.class, BrowserExtension.class, CheckNameInterceptor.class})

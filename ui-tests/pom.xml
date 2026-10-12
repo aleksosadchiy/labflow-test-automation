@@ -82,6 +82,18 @@
             <artifactId>junit-platform-testkit</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+            Allure's JUnit 5 adapter (allure-jupiter, the new name of allure-junit5): a JUnit
+            Platform listener that writes one result file per check into the shared
+            target/allure-results at the repository root (allure.properties).
+            No Java agent is used: steps and attachments are added through Allure's plain API.
+            The version comes from the Allure BOM in the root pom.
+        -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Logging implementation for this module's own tests; config in src/test/resources/logback-test.xml. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>

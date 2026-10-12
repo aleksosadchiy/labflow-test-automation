@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>Why: asking for a label that no check carries (for example {@code -Dgroups=nosuch}) is not an
  * error, so Maven just says {@code Tests run: 0} and the build is green. This line makes the empty
  * selection unmistakable. A "check" is a test tagged {@code api} or {@code ui}; the framework's own
- * self-checks are untagged and are not counted.
+ * self-checks are untagged and are not counted. The tag rule is {@link Labels#isLabCheck}.
  *
  * <p>The labels are read from the {@code groups} system property. Surefire copies the Maven
  * command-line properties ({@code -Dgroups=...}) into the forked test JVM, so the property is
@@ -35,7 +35,7 @@ public class CheckCountListener implements TestExecutionListener {
 
     @Override
     public void executionFinished(TestIdentifier test, TestExecutionResult result) {
-        if (test.isTest() && isLabCheck(test)) {
+        if (test.isTest() && Labels.isLabCheck(test.getTags())) {
             checksRun.incrementAndGet();
         }
     }
@@ -43,11 +43,6 @@ public class CheckCountListener implements TestExecutionListener {
     @Override
     public void testPlanExecutionFinished(TestPlan testPlan) {
         LOG.info(summary(checksRun.get(), System.getProperty("groups")));
-    }
-
-    private static boolean isLabCheck(TestIdentifier test) {
-        return test.getTags().stream()
-                .anyMatch(tag -> tag.getName().equals(Labels.API) || tag.getName().equals(Labels.UI));
     }
 
     /** The one-line summary; blank labels mean no label was asked for, so every check ran. */

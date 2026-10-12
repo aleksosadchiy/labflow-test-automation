@@ -197,6 +197,8 @@ public final class BrowserExtension implements BeforeEachCallback, AfterEachCall
         } catch (RuntimeException e) {
             problems.add(e);
         }
+        // Whatever was saved also goes into the check's Allure report.
+        AllureEvidence.attach(folder);
         if (!problems.isEmpty()) {
             RuntimeException failure = new RuntimeException("Could not save failure artifacts to " + folder);
             problems.forEach(failure::addSuppressed);

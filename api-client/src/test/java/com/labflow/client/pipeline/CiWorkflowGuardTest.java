@@ -1,5 +1,5 @@
 // @layer: unit
-// @spec: 006-ci-cd-pipeline
+// @spec: 006-ci-cd-pipeline, 007-allure-report
 // @regression
 package com.labflow.client.pipeline;
 
@@ -10,13 +10,14 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * A framework self-check about the build pipeline (spec 006): pins the decisions in
+ * A framework self-check about the build pipeline (spec 006, and the Report job of spec 007): pins the decisions in
  * {@code .github/workflows/ci.yml} (and the access-key script it calls) that cannot be exercised without a real GitHub run, so a
  * careless edit shows up in the lab-free Build job instead of as a silently weaker pipeline.
  * Reads the file as plain text (no YAML library, like the other guard tests); lives in
@@ -28,6 +29,8 @@ class CiWorkflowGuardTest {
 
     private static final Path CI = Path.of("..", ".github", "workflows", "ci.yml");
     private static final Path ACCESS_KEY_SCRIPT = Path.of("..", ".github", "scripts", "access_key.sh");
+    private static final Path REPORT_SCRIPT = Path.of("..", ".github", "scripts", "report.sh");
+    private static final Path README = Path.of("..", "README.md");
     private static final String YAML = readFile(CI);
 
     @Test
@@ -50,20 +53,21 @@ class CiWorkflowGuardTest {
     }
 
     @Test
-    @DisplayName("There are exactly three jobs named Build, Workflow checks and Screen checks, the two check jobs gated on Build (FS 2.2)")
+    @DisplayName("There are exactly four jobs named Build, Workflow checks, Screen checks and Report, the two check jobs gated on Build (FS 2.2, spec 007 FS 2.6)")
     void jobsAndGate() {
         assertThat(job("build")).contains("name: Build");
         assertThat(job("api-tests")).contains("name: Workflow checks").containsPattern("(?m)^    needs: build$");
         assertThat(job("ui-tests")).contains("name: Screen checks").containsPattern("(?m)^    needs: build$");
+        assertThat(job("report")).contains("name: Report");
         assertThat(job("build")).as("Build is the root of the graph").doesNotContain("needs:");
         assertThat(Pattern.compile("(?m)^  [a-z-]+:$").matcher(YAML.substring(YAML.indexOf("\njobs:")))
-                .results().count()).as("number of jobs").isEqualTo(3);
+                .results().count()).as("number of jobs").isEqualTo(4);
     }
 
     @Test
     @DisplayName("Every job has a 15-minute timeout and a pinned runner image (FS 2.6)")
     void timeoutAndRunner() {
-        for (String id : new String[]{"build", "api-tests", "ui-tests"}) {
+        for (String id : new String[]{"build", "api-tests", "ui-tests", "report"}) {
             assertThat(job(id)).as("job " + id)
                     .contains("timeout-minutes: 15")
                     .containsPattern("(?m)^    runs-on: ubuntu-24\\.04$");
@@ -115,6 +119,8 @@ class CiWorkflowGuardTest {
     @DisplayName("Build also packages the Mock Lab, so the lab's dependencies are in the Maven cache the check jobs restore (FS 2.6)")
     void buildWarmsTheLabCache() {
         assertThat(code(job("build"))).contains("cd mock-lab-app && ./mvnw -B -ntp -q package -DskipTests");
+        assertThat(code(job("build"))).as("Build also fetches the Playwright CLI, so 'Install the browser' does not depend on Maven Central")
+                .contains("./mvnw -B -ntp -N exec:java -Dexec.args=\"--version\"");
         assertThat(code(job("build"))).contains("cache: maven");
     }
 
@@ -140,6 +146,113 @@ class CiWorkflowGuardTest {
         assertThat(scan.indexOf("sha256sum -c")).as("verified before it runs")
                 .isGreaterThan(0).isLessThan(scan.indexOf("gitleaks\" git"));
         assertThat(scan).as("found secrets are not printed into the log").contains("--redact");
+    }
+
+    @Test
+    @DisplayName("The report script switches the tool's analytics off with the exact value true, the only value the tool honours (spec 007)")
+    void reportScriptSwitchesAnalyticsOff() {
+        List<String> assignments = code(readFile(REPORT_SCRIPT)).lines()
+                .filter(l -> l.contains("ALLURE_NO_ANALYTICS="))
+                .map(String::strip)
+                .toList();
+
+        assertThat(assignments)
+                .as("restore 'export ALLURE_NO_ANALYTICS=true' in .github/scripts/report.sh; the tool leaves its Google Analytics tag in "
+                        + "and reports to Google for any other value (even 1)")
+                .isNotEmpty()
+                .allMatch(l -> l.matches("(export\\s+)?ALLURE_NO_ANALYTICS=true"));
+    }
+
+    @Test
+    @DisplayName("The README and the workflow build the report only through the script, never by calling the Maven report goals themselves (spec 007)")
+    void reportIsBuiltOnlyThroughTheScript() {
+        String readme = readFile(README).replaceAll("(?s)<!--.*?-->", "");
+        String workflow = code(YAML);
+
+        for (String goal : new String[]{"allure:report", "allure:aggregate", "allure:serve"}) {
+            assertThat(readme).as("README text (code blocks included) must call .github/scripts/report.sh, not '" + goal + "': "
+                    + "the script switches the tool's analytics off and refuses to build an empty report").doesNotContain(goal);
+            assertThat(workflow).as("ci.yml must call .github/scripts/report.sh, not '" + goal + "'").doesNotContain(goal);
+        }
+    }
+
+    @Test
+    @DisplayName("Both check jobs keep their report result files with the run, so the Report job can collect them (spec 007 FS 2.6)")
+    void checkJobsKeepTheReportResultFiles() {
+        for (String id : new String[]{"api-tests", "ui-tests"}) {
+            assertThat(step(job(id), "Keep the results"))
+                    .as(id + ": restore 'target/allure-results/' in the path list of 'Keep the results'; without it the Report job "
+                            + "finds no result files of this family")
+                    .containsPattern("(?m)^            target/allure-results/$")
+                    .contains("if: always()")
+                    .contains("${{ github.run_attempt }}");
+        }
+    }
+
+    @Test
+    @DisplayName("The Report job waits for Build and both check jobs, runs after a failed or skipped check job, and is skipped after a broken build (spec 007 FS 2.6)")
+    void reportJobRunsAfterTheCheckJobs() {
+        String report = code(job("report"));
+        assertThat(report).as("needs all three jobs: without 'build' the job cannot read needs.build.result, "
+                        + "without a check job it could start before that job's result files are kept")
+                .containsPattern("(?m)^    needs: \\[build, api-tests, ui-tests\\]$");
+        assertThat(report).as("not cancelled AND Build succeeded: !cancelled() lets it run after a failed or skipped check job, "
+                        + "the Build condition keeps it skipped (grey, not red) after a broken build")
+                .containsPattern("(?m)^    if: \\$\\{\\{ !cancelled\\(\\) && needs\\.build\\.result == 'success' \\}\\}$");
+    }
+
+    @Test
+    @DisplayName("A problem in the Report job can never turn the run red, and a missing report is explained on the run page (spec 007 FS 2.7)")
+    void reportJobNeverChangesTheVerdict() {
+        String report = job("report");
+        assertThat(code(report)).as("job-level continue-on-error (4 spaces deep): the run's verdict comes from Build and the check jobs only")
+                .containsPattern("(?m)^    continue-on-error: true$");
+
+        String lastStep = report.substring(report.lastIndexOf("\n      - name: "));
+        assertThat(lastStep).as("the last step runs even after a failed step, to say why there is no report")
+                .containsPattern("(?m)^        if: always\\(\\)$");
+        assertThat(lastStep).as("a warning annotation on the run page").contains("::warning title=Allure report missing::");
+        assertThat(lastStep).as("one line in the job summary").contains(">> \"$GITHUB_STEP_SUMMARY\"");
+    }
+
+    @Test
+    @DisplayName("The Report job builds the report through the script and keeps it under a name with the browser and the attempt, so a re-run does not replace it (spec 007 FS 2.6)")
+    void reportIsBuiltByTheScriptAndKeptPerAttempt() {
+        String report = job("report");
+        assertThat(step(report, "Build the report")).as("the one documented way to build the report")
+                .containsPattern("(?m)^        run: \\.github/scripts/report\\.sh$");
+        assertThat(step(report, "Keep the report")).as("report artifact: browser as Screen checks computes it, then the attempt number")
+                .contains("name: allure-report-${{ inputs.browser || 'chromium' }}-${{ github.run_attempt }}")
+                .contains("path: target/site/allure-maven-plugin/index.html");
+        assertThat(report.indexOf("- name: Build the report")).as("built before it is kept")
+                .isLessThan(report.indexOf("- name: Keep the report"));
+    }
+
+    @Test
+    @DisplayName("The Report job links the kept report on the run page, from what the upload step gives back, and only when the report was kept (spec 007 FS 2.6)")
+    void reportIsLinkedOnTheRunPageOnlyWhenKept() {
+        String report = job("report");
+        assertThat(step(report, "Keep the report")).as("the upload step has the id the link is read from").contains("id: keep");
+
+        String lastStep = report.substring(report.lastIndexOf("\n      - name: "));
+        assertThat(lastStep).as("the step that writes the link still runs after a failed step, to explain a missing report instead")
+                .containsPattern("(?m)^        if: always\\(\\)$");
+        assertThat(lastStep).as("the link is the address the upload step gives back for THIS run and attempt, never one put together by hand")
+                .containsPattern("(?m)^          REPORT_URL: \\$\\{\\{ steps\\.keep\\.outputs\\.artifact-url \\}\\}$");
+        assertThat(lastStep).as("the name in the line is the name the report is kept under")
+                .containsPattern("(?m)^          REPORT_NAME: allure-report-\\$\\{\\{ inputs\\.browser \\|\\| 'chromium' \\}\\}-\\$\\{\\{ github\\.run_attempt \\}\\}$");
+        assertThat(lastStep).as("the upload step's outcome is one of the reasons for 'no report'")
+                .contains("KEPT: ${{ steps.keep.outcome }}").contains("elif [ \"$KEPT\" != \"success\" ]; then");
+
+        String whenMissing = section(lastStep, "if [ -n \"$REASON\" ]; then", "\n          else\n");
+        String whenKept = lastStep.substring(lastStep.indexOf(whenMissing) + whenMissing.length());
+        assertThat(lastStep.substring(0, lastStep.indexOf(whenMissing)) + whenMissing)
+                .as("no link outside the 'nothing is missing' branch: a report that was not built or not kept gets no link line")
+                .doesNotContain("$REPORT_URL");
+        assertThat(whenKept).as("one Markdown link to the kept report, with the number of checks it covers")
+                .contains("($RESULT_FILES checks)").contains("[download $REPORT_NAME]($REPORT_URL)");
+        assertThat(whenKept).as("written to the run page AND to the step's log, like the 'Summarise results' lines")
+                .contains("echo \"$LINE\" | tee -a \"$GITHUB_STEP_SUMMARY\"");
     }
 
     // ---- helpers -------------------------------------------------------------------------

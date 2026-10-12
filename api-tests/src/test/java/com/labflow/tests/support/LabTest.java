@@ -7,6 +7,7 @@ import com.labflow.common.junit.CheckNameInterceptor;
 import com.labflow.common.junit.Regression;
 import com.labflow.common.model.Patient;
 import com.labflow.testdata.Patients;
+import io.qameta.allure.Epic;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
@@ -18,8 +19,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
  *
  * <p>Labels: every check inherits {@code api} and {@code regression} from here (both annotations
  * are {@code @Inherited}), so no check file carries a label of its own except {@code @Smoke} on
- * the few key paths.
+ * the few key paths. {@code @Epic} (also {@code @Inherited}) is the family name the visual report
+ * groups these checks under.
  */
+@Epic("Workflow checks")
 @ApiCheck
 @Regression
 @ExtendWith({ScenarioNameExtension.class, CheckNameInterceptor.class})

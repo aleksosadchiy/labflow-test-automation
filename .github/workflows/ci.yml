@@ -1,8 +1,11 @@
-# CI for the lab test-automation framework (spec 006).
+# CI for the lab test-automation framework (spec 006; the Report job is spec 007).
 #   Build           compiles everything and runs the lab-free self-checks.
 #   Workflow checks starts its own Mock Lab and runs the api-tests regression set.
 #   Screen checks   installs a browser, starts its own Mock Lab and runs the
 #                   ui-tests regression set. It runs in parallel with Workflow checks.
+#   Report          runs after both check jobs, collects their Allure result files
+#                   and keeps ONE visual report of the run. It can never turn the
+#                   run red, and it must not be a required check for merging.
 name: CI
 
 on:
@@ -105,6 +108,19 @@ jobs:
       - name: Build the Mock Lab (and cache its dependencies)
         run: cd mock-lab-app && ./mvnw -B -ntp -q package -DskipTests
 
+      # Same idea for the Playwright CLI. Nothing else in this job runs it, so the
+      # Screen checks job used to fetch exec-maven-plugin and its Playwright
+      # dependency from Maven Central live in "Install the browser", and one short
+      # outage there failed that job (run 38224248594). Running the same goal here
+      # with a harmless argument puts exactly those artifacts into the Maven cache.
+      # --version prints the CLI version and downloads no browser. The cache is
+      # written only when its key (every pom.xml) is new, so this takes effect from
+      # the first Build after a pom change.
+      - name: Fetch the Playwright CLI (and cache it for Screen checks)
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: ./mvnw -B -ntp -N exec:java -Dexec.args="--version"
+
       # always(): the summary is most useful exactly when a check failed.
       # tee -a: the same Markdown goes to the run page AND into this step's log.
       # One summary per module, each reading only that module's own reports.
@@ -191,6 +207,11 @@ jobs:
       # 90-day default (the user's decision). GitHub does NOT mask artifact
       # contents; secrets stay out because the framework never writes them
       # (proven by RunLogSecrecyTest for logs and SignInTraceTest for traces).
+      # target/allure-results/ (spec 007): one small file per lab check, written
+      # to the ROOT target folder because Maven runs from the repo root. The
+      # Report job downloads them from this artifact to build the visual report.
+      # With several paths the artifact's root is their common parent (here the
+      # repo root), so the files sit at target/allure-results/ inside it.
       - name: Keep the results
         if: always()
         uses: actions/upload-artifact@v7
@@ -200,6 +221,7 @@ jobs:
             api-tests/target/surefire-reports/
             api-tests/target/logs/
             mock-lab-app/target/lab-startup.log
+            target/allure-results/
           if-no-files-found: warn
 
   ui-tests:
@@ -310,6 +332,11 @@ jobs:
       # 90-day default (the user's decision). GitHub does NOT mask artifact
       # contents; secrets stay out because the framework never writes them
       # (proven by RunLogSecrecyTest for logs and SignInTraceTest for traces).
+      # target/allure-results/ (spec 007): one small file per lab check, written
+      # to the ROOT target folder because Maven runs from the repo root. The
+      # Report job downloads them from this artifact to build the visual report.
+      # With several paths the artifact's root is their common parent (here the
+      # repo root), so the files sit at target/allure-results/ inside it.
       - name: Keep the results
         if: always()
         uses: actions/upload-artifact@v7
@@ -319,6 +346,7 @@ jobs:
             ui-tests/target/surefire-reports/
             ui-tests/target/logs/
             mock-lab-app/target/lab-startup.log
+            target/allure-results/
           if-no-files-found: warn
 
       # failure(), not always(): pictures and recordings only exist for failed
@@ -331,3 +359,184 @@ jobs:
           name: screen-failures-${{ env.BROWSER }}-${{ github.run_attempt }}
           path: ui-tests/target/ui-failures/
           if-no-files-found: ignore
+
+  report:
+    name: Report
+    # After Build AND both check jobs: the two check jobs run on different
+    # machines, so only a job that runs after both can see both sets of result
+    # files and build ONE report (spec 007, FS 2.6).
+    needs: [build, api-tests, ui-tests]
+    # By default a job is skipped as soon as one of its "needs" failed or was
+    # skipped. !cancelled() lifts that: the report is built when a check job
+    # failed (that is when it is most useful) and when a hand-started run skipped
+    # one family. needs.build.result == 'success' puts one condition back: after
+    # a broken build no check ran, so this job is skipped (grey), never red.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    # The guarantee of FS 2.7: whatever goes wrong in this job, the run's verdict
+    # still comes from Build and the check jobs only. The job itself may show red.
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # No step in this job has its own continue-on-error, on purpose:
+    #   - a step that really breaks (download, report script, upload) turns THIS
+    #     job red, which is honest, and the job-level setting above keeps the
+    #     run's verdict out of it;
+    #   - "no result files" is not a reporting fault (the check jobs kept none,
+    #     for example because the lab did not start, and those jobs are red
+    #     already), so the build and upload steps are skipped by their "if" and
+    #     the job stays green with a warning;
+    #   - the last step runs with always() and reads the outcome of the steps
+    #     before it, so it can say which of them is the reason.
+    steps:
+      # report.sh and the Maven wrapper it calls come from the repository.
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      # The report is built by a Maven plugin (allure-maven), so this job needs
+      # the same JDK and the same Maven cache as the others.
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # download-artifact@v8 is the major that pairs with upload-artifact@v7
+      # (released together). No "name": the attempt number in the name is not
+      # known here, because after a re-run of one job the other family's newest
+      # artifact is still the one of attempt 1. "pattern" takes every attempt of
+      # this run; a pattern that matches nothing is not an error (family=ui).
+      # One folder per family, because the action's layout depends on the count:
+      # several matches -> one sub-folder per artifact, named after it;
+      # exactly one match -> unpacked straight into "path", no sub-folder.
+      # The next step handles both.
+      - name: Fetch the workflow-check results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: workflow-checks-results-*
+          path: ${{ runner.temp }}/allure-artifacts/workflow
+
+      # Same as above for the other family. The browser is part of the name;
+      # it is the same for every attempt of one run.
+      - name: Fetch the screen-check results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: screen-checks-results-*
+          path: ${{ runner.temp }}/allure-artifacts/screen
+
+      # Artifacts belong to the run, not to the attempt, so a re-run also sees
+      # the first attempt's files. Per family, take the artifact with the HIGHEST
+      # attempt number (compared as a number, so 10 beats 9) and copy its result
+      # files into target/allure-results, where report.sh expects them. That
+      # gives the fresh results of a re-run job plus the other family's latest,
+      # and no check twice. Result file names are random UUIDs, so the two
+      # families cannot overwrite each other. The count goes to the next steps.
+      - name: Collect the newest results of each family
+        id: collect
+        run: |
+          DEST=target/allure-results
+          mkdir -p "$DEST"
+          for family in workflow screen; do
+            dir="$RUNNER_TEMP/allure-artifacts/$family"
+            best=""
+            best_attempt=0
+            for candidate in "$dir/$family"-checks-results-*/; do
+              [ -d "$candidate" ] || continue
+              name="${candidate%/}"
+              attempt="${name##*-}"
+              case "$attempt" in '' | *[!0-9]*) continue ;; esac
+              if [ "$attempt" -gt "$best_attempt" ]; then
+                best="$name"
+                best_attempt="$attempt"
+              fi
+            done
+            if [ -n "$best" ]; then
+              from="artifact ${best##*/}"
+            elif [ -d "$dir" ]; then
+              best="$dir"
+              from="its only artifact"
+            fi
+            if [ -n "$best" ] && [ -d "$best/target/allure-results" ]; then
+              cp -R "$best/target/allure-results/." "$DEST/"
+              echo "$family checks: result files taken from $from"
+            else
+              echo "$family checks: no result files (the job was skipped, or it failed before the checks ran)"
+            fi
+          done
+          COUNT=$(find "$DEST" -maxdepth 1 -type f -name '*-result.json' | wc -l | tr -d ' ')
+          echo "Result files collected: $COUNT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      # The one way to build the report (a guard test forbids calling the Maven
+      # goal here): the script switches the tool's analytics off and checks the
+      # built page. It also exits 1 when there are no result files, so it is
+      # skipped in that case: see the comment above "steps:".
+      - name: Build the report
+        id: build
+        if: steps.collect.outputs.count != '0'
+        run: .github/scripts/report.sh
+
+      # One self-contained HTML file, kept with the run. The name says it is the
+      # report and which browser the screen checks used (computed like BROWSER in
+      # Screen checks). run_attempt: a re-run keeps its own report next to the
+      # first attempt's instead of replacing it (FS 2.6). Default retention.
+      - name: Keep the report
+        id: keep
+        if: steps.collect.outputs.count != '0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: allure-report-${{ inputs.browser || 'chromium' }}-${{ github.run_attempt }}
+          path: target/site/allure-maven-plugin/index.html
+          if-no-files-found: warn
+
+      # always(): runs even after a failed step, because that is exactly when a
+      # reader needs to know why there is no report (FS 2.7). It only reports:
+      # a yellow warning on the run page plus one line in the job summary. It
+      # checks that index.html exists, and reads the outcomes of the earlier
+      # steps (passed in through env) to tell the reasons apart. It exits 0
+      # itself, so it never changes this job's colour.
+      # When nothing is missing, the same step writes ONE line with a link to the
+      # report (FS 2.6). It is written here and not in a step of its own because
+      # this step already decides "report or no report" from every outcome, so
+      # the link and the "missing" line can never both appear. The link is what
+      # the upload step gives back (its output artifact-url): the address of the
+      # artifact of THIS run and attempt, for a signed-in reader. It downloads a
+      # zip. upload-artifact v7 can upload one file unzipped (archive: false),
+      # but then it ignores "name" and calls the artifact index.html, which loses
+      # the browser and the attempt and would clash on a re-run; not used.
+      # tee -a: the line goes to the run page AND into this step's log.
+      # "|| echo": the report is kept already, so a summary that cannot be
+      # written must not turn this job red.
+      - name: Say why the report is missing
+        if: always()
+        env:
+          COLLECTED: ${{ steps.collect.outcome }}
+          RESULT_FILES: ${{ steps.collect.outputs.count }}
+          BUILT: ${{ steps.build.outcome }}
+          KEPT: ${{ steps.keep.outcome }}
+          REPORT_URL: ${{ steps.keep.outputs.artifact-url }}
+          REPORT_NAME: allure-report-${{ inputs.browser || 'chromium' }}-${{ github.run_attempt }}
+        run: |
+          REPORT=target/site/allure-maven-plugin/index.html
+          REASON=""
+          if [ "$COLLECTED" != "success" ]; then
+            REASON="the result files of the check jobs could not be downloaded or copied (see the steps above)"
+          elif [ "$RESULT_FILES" = "0" ]; then
+            REASON="no result files were found, because no check job kept any (it was skipped, or it failed before its checks ran)"
+          elif [ "$BUILT" != "success" ]; then
+            REASON="the report script failed (see the step 'Build the report')"
+          elif [ ! -f "$REPORT" ]; then
+            REASON="the report script finished but left no $REPORT"
+          elif [ "$KEPT" != "success" ]; then
+            REASON="the report was built but could not be kept with the run (the upload failed)"
+          fi
+          if [ -n "$REASON" ]; then
+            echo "::warning title=Allure report missing::$REASON"
+            echo "⚠️ **Report**: no Allure report is kept with this run: $REASON" >> "$GITHUB_STEP_SUMMARY"
+          else
+            case "$REPORT_URL" in
+              https://*) LINE="📊 **Allure report** of this run ($RESULT_FILES checks): [download $REPORT_NAME]($REPORT_URL) (a zip: unzip it and double-click index.html)" ;;
+              *) LINE="📊 **Allure report** of this run ($RESULT_FILES checks): kept as $REPORT_NAME under Artifacts on this page (the upload step gave back no link)" ;;
+            esac
+            echo "$LINE" | tee -a "$GITHUB_STEP_SUMMARY" || echo "The report is kept, but the line about it could not be written to the run page."
+          fi

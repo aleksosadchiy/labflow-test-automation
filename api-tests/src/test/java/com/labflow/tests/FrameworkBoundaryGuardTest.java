@@ -32,6 +32,11 @@ class FrameworkBoundaryGuardTest {
             "Process" + "Builder",
             "Runtime" + ".getRuntime().exec");   // not .availableProcessors(), which ChecksAtOnceStrategy needs
 
+    // The one source allowed to start a process: Spec007ReportAcceptanceTest runs bash on a COPY of
+    // .github/scripts/report.sh in a temporary folder (with a stand-in mvnw). It never builds, starts
+    // or stops the lab, which is what this guard protects. Exempt by exact file name, nothing wider.
+    private static final String REPORT_SCRIPT_TEST = "Spec007ReportAcceptanceTest.java";
+
     // Maven runs the checks with the module directory (api-tests) as the working directory.
     private static final List<Path> FRAMEWORK_SOURCES = List.of(
             Path.of("..", "common", "src"),
@@ -60,6 +65,7 @@ class FrameworkBoundaryGuardTest {
         for (Path folder : FRAMEWORK_SOURCES) {
             sources.addAll(CheckSources.javaFilesUnder(folder));
         }
+        sources.removeIf(file -> file.getFileName().toString().equals(REPORT_SCRIPT_TEST));
 
         List<String> offences = new ArrayList<>();
         for (String call : PROCESS_STARTING) {

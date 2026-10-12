@@ -15,6 +15,7 @@ import org.junit.platform.launcher.LauncherSessionListener;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
@@ -83,6 +84,56 @@ class UiRunWiringGuardTest {
         assertThat(junit.getProperty("junit.jupiter.execution.timeout.thread.mode.default"))
                 .as("the thread mode for that time limit, deliberately SEPARATE_THREAD so the run always continues past the limit")
                 .isEqualTo("SEPARATE_THREAD");
+    }
+
+    @Test
+    @DisplayName("Allure's own listener is switched off, so the report lists the screen checks only and not the framework's self-checks (spec 007)")
+    void allureOwnListenerIsSwitchedOff() throws IOException {
+        Properties junit = properties("/junit-platform.properties");
+
+        assertThat(junit.getProperty("junit.platform.execution.listeners.deactivate"))
+                .as("restore 'junit.platform.execution.listeners.deactivate=io.qameta.allure.junitplatform.AllureJunitPlatform' "
+                        + "in junit-platform.properties; without it Allure records every test, self-checks included")
+                .isNotNull()
+                .contains("io.qameta.allure.junitplatform.AllureJunitPlatform");
+    }
+
+    @Test
+    @DisplayName("The filtering Allure listener is registered for every run, so the screen checks reach the report (spec 007)")
+    void filteringAllureListenerIsRegistered() throws IOException {
+        assertThat(serviceEntries("/META-INF/services/org.junit.platform.launcher.TestExecutionListener"))
+                .as("restore 'com.labflow.common.junit.LabChecksAllureListener' in META-INF/services/"
+                        + "org.junit.platform.launcher.TestExecutionListener; without it the report is empty")
+                .contains("com.labflow.common.junit.LabChecksAllureListener");
+    }
+
+    @Test
+    @DisplayName("The Allure result files go into the shared target folder at the repository root, so a clean removes them and both families land in one place (spec 007)")
+    void allureResultsGoIntoTheSharedTargetFolder() throws IOException {
+        assertThat(properties("/allure.properties").getProperty("allure.results.directory"))
+                .as("restore 'allure.results.directory=../target/allure-results' in allure.properties; "
+                        + "another place would leave results that clean does not remove, or split the report")
+                .isEqualTo("../target/allure-results");
+    }
+
+    private static Properties properties(String resource) throws IOException {
+        Properties properties = new Properties();
+        try (InputStream in = UiRunWiringGuardTest.class.getResourceAsStream(resource)) {
+            assertThat(in).as("the resource " + resource + " on the test classpath").isNotNull();
+            properties.load(in);
+        }
+        return properties;
+    }
+
+    /** The class names a service file lists: one per line, comments and blank lines left out. */
+    private static List<String> serviceEntries(String resource) throws IOException {
+        try (InputStream in = UiRunWiringGuardTest.class.getResourceAsStream(resource)) {
+            assertThat(in).as("the service file " + resource + " on the test classpath").isNotNull();
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8).lines()
+                    .map(line -> line.replaceFirst("#.*", "").trim())
+                    .filter(line -> !line.isEmpty())
+                    .toList();
+        }
     }
 
     /** {@code .../tests/rejection/FooTest.java} names the class {@code com.labflow.ui.tests.rejection.FooTest}. */

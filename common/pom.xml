@@ -41,6 +41,14 @@
             <artifactId>junit-platform-launcher</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- Allure's JUnit Platform listener, to compile LabChecksAllureListener (records only the lab
+             checks in the report). Provided again: api-tests and ui-tests bring it through
+             allure-jupiter at test scope; the version comes from the Allure BOM. -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-junit-platform</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -36,12 +36,18 @@
         <playwright.version>1.63.0</playwright.version>
         <slf4j.version>2.0.20</slf4j.version>
         <logback.version>1.5.38</logback.version>
+        <!-- The 2.x line on purpose: Allure 3.0 is built against JUnit 6, this project is on JUnit 5. -->
+        <allure.version>2.35.5</allure.version>
 
+        <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
         <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <spotless-maven-plugin.version>3.10.4</spotless-maven-plugin.version>
+        <allure-maven.version>3.1.0</allure-maven.version>
+        <!-- The Allure Report tool that allure-maven downloads to build the HTML report. -->
+        <allure-report.version>2.46.1</allure-report.version>
     </properties>
 
     <dependencyManagement>
@@ -50,6 +56,13 @@
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
                 <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-bom</artifactId>
+                <version>${allure.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -123,6 +136,11 @@
                 -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${maven-clean-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                 </plugin>
@@ -150,6 +168,37 @@
                             <usePhrasedClassNameInRunning>true</usePhrasedClassNameInRunning>
                             <usePhrasedClassNameInTestCaseSummary>true</usePhrasedClassNameInTestCaseSummary>
                         </statelessTestsetInfoReporter>
+                    </configuration>
+                </plugin>
+                <!--
+                    Allure Report: turns the result files the checks write into ONE shared
+                    folder, target/allure-results at the repository root (see allure.properties
+                    in api-tests and ui-tests), into one HTML page. Not bound to a build phase;
+                    build the report after the tests with the script, not with the bare goal:
+                        .github/scripts/report.sh
+                    The script runs `./mvnw -N allure:report` with ALLURE_NO_ANALYTICS=true,
+                    because the tool's Google Analytics (a tag in the page and an event sent on
+                    every build) can only be switched off through the environment, which this
+                    plugin has no setting for.
+                    -N (non-recursive) = this root project only, so the plugin reads the root's
+                    own target/ and writes target/site/allure-maven-plugin/index.html.
+                    resultsDirectory is relative on purpose: the plugin resolves it against the
+                    project's build directory (target/).
+                    singleFile = one self-contained index.html that opens straight from disk or
+                    from a downloaded CI artifact, with no web server. The tool itself is
+                    downloaded from Maven Central on first use into .allure/ at the repository
+                    root (gitignored): pinned by version, not checksum-verified, which is accepted
+                    for a reporting tool that touches no secret.
+                -->
+                <plugin>
+                    <groupId>io.qameta.allure</groupId>
+                    <artifactId>allure-maven</artifactId>
+                    <version>${allure-maven.version}</version>
+                    <configuration>
+                        <reportVersion>${allure-report.version}</reportVersion>
+                        <resultsDirectory>allure-results</resultsDirectory>
+                        <installDirectory>${maven.multiModuleProjectDirectory}/.allure</installDirectory>
+                        <singleFile>true</singleFile>
                     </configuration>
                 </plugin>
             </plugins>
@@ -205,6 +254,53 @@
                         <endWithNewline/>
                     </java>
                 </configuration>
+            </plugin>
+            <!--
+                A run starts with no Allure results and no built report. Both check modules write
+                their result files into the root's target/allure-results, so this one execution, on
+                the root project only (inherited=false), deletes two folders at `validate`, the FIRST
+                phase of the default lifecycle (so even `./mvnw validate` starts empty):
+                  - target/allure-results: a second run never mixes with the first, and a
+                    single-family run leaves nothing from the other family;
+                  - target/site/allure-maven-plugin (the built report): with no results the report
+                    goal builds nothing but leaves an old index.html in place, so without this the
+                    previous run's report could be mistaken for the new run's.
+                The root is first in the reactor for every documented command (also
+                `-pl api-tests -am`). excludeDefaultDirectories = do NOT delete target/ itself,
+                only the filesets below. Consequence: any lifecycle command started from the root
+                (even `validate`) removes both; `allure:report` is a direct goal with no
+                lifecycle, so it does not.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <inherited>false</inherited>
+                <executions>
+                    <execution>
+                        <id>empty-allure-results</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}/allure-results</directory>
+                                </fileset>
+                                <fileset>
+                                    <directory>${project.build.directory}/site/allure-maven-plugin</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Declared on the root only: the report is built once, from the shared folder (see pluginManagement). -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <inherited>false</inherited>
             </plugin>
             <!--
                 One-time browser install: `./mvnw -N exec:java` runs Playwright's own CLI

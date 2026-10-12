@@ -8,7 +8,7 @@ The screen checks: they drive the lab's screens in a real browser with Playwrigh
 | `src/main` · `com.labflow.ui.config` | The browser choice and the sign-in credentials (the password prints as `***`). |
 | `src/main` · `com.labflow.ui.recording` | Pauses Playwright's trace while the password is typed, so it never lands in a trace. |
 | `src/test` · `…tests.happy`, `…tests.rejection` | The checks, written as user workflows. |
-| `src/test` · `…tests.support` | `UiTest` (the base class; it carries the `ui` and `regression` labels) and `BrowserExtension`, which gives each check a fresh browser window and keeps a screenshot and a trace when a check fails. |
+| `src/test` · `…tests.support` | `UiTest` (the base class; it carries the `ui` and `regression` labels) and `BrowserExtension`, which gives each check a fresh browser window and keeps a screenshot and a trace when a check fails. `AllureEvidence` attaches those two files to the failed check in the visual report; a passing check attaches nothing. |
 | `src/test` · `…tests.guard` | Guard tests that keep the rules: no fixed sleeps, no locators outside Page Objects, no assertions inside them. |
 
 A check prepares its data through `api-client` (the lab has no patient screen), then acts on the screens.
@@ -21,4 +21,4 @@ A check prepares its data through `api-client` (the lab has no patient screen), 
 ./mvnw -pl ui-tests -am test -Dheaded=true -DslowMo=250     # watch a run
 ```
 
-Failure evidence lands in `target/ui-failures/<browser>/<TestClass>/<scenario>/`. WebKit, labels and opening a trace are explained in the [root README](../README.md).
+Failure evidence lands in `target/ui-failures/<browser>/<TestClass>/<scenario>/`. WebKit, labels, opening a trace and building the visual report are explained in the [root README](../README.md).

@@ -25,6 +25,9 @@ target/
 *.tar.gz
 *.rar
 
+# The Allure Report tool, downloaded on first use by `.github/scripts/report.sh`
+.allure/
+
 # Local environment files: they may hold a real API_TOKEN or sign-in password
 .env
 .env.*
