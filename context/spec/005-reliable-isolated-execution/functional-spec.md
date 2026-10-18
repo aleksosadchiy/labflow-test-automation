@@ -17,7 +17,7 @@ That is fine for a demo and weak for a real team. A real team asks four question
 3. **"Can I point it at another lab or browser without editing code?"** The lab address and access key can already be set from outside. The browser and the target environment cannot.
 4. **"What happened during the run that failed in the pipeline?"** When a check fails somewhere the engineer cannot watch, they need a written record of what the framework asked the lab and what the lab answered. In a healthcare-like system that record must never contain access keys, passwords or patient names.
 
-In this specification the **engineer** is whoever runs the framework (in practice the author rehearsing, or a reviewer). The **lab** is the Mock Lab.
+In this specification the **engineer** is whoever runs the framework (in practice the author, or a reviewer). The **lab** is the Mock Lab.
 
 Success is measured by four things:
 
@@ -108,7 +108,7 @@ Success is measured by four things:
 ### Out-of-Scope
 
 - The automated build pipeline and published test reports in it (**Phase 3 — CI/CD Pipeline**). This specification only makes sure the settings and labels are ready for it, for example the "ci" environment name.
-- The full README rewrite and the project walkthrough (**Phase 3 — Documentation & Review Readiness**); only the new commands and options are added here.
+- The full README rewrite and the design walkthrough (**Phase 3 — Documentation & Walkthrough**); only the new commands and options are added here.
 - The optional Cucumber demonstration (**Phase 3 — Optional BDD Layer**).
 - Any change to the lab or its screens.
 - Running checks on several machines at once, cloud browser farms, or running each check in several browsers within one run.

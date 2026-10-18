@@ -58,6 +58,47 @@
             <artifactId>allure-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+            Cucumber-JVM: runs the workflow checks written as Gherkin scenarios in
+            src/test/features (put on the classpath as features/ by the testResources below). Versions come from the Cucumber BOM in the root pom.
+        -->
+        <!-- Step definitions and hooks as annotated Java methods (@Given, @When, @Then, @Before, @After). -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- A JUnit Platform engine, next to Jupiter: Surefire finds and runs the scenarios in the same `./mvnw test`. -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            JUnit Platform Suite: one @Suite class points at the feature files. Surefire reports results
+            per test class, so scenarios found without a class never reach its verdict; the suite class
+            gives them one. The version comes from the root's junit-bom import.
+        -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Constructor injection: one state object per scenario, shared by the step and hook classes. -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Allure's Cucumber 7 adapter: a Cucumber plugin that writes one result file per scenario,
+            with the scenario's Gherkin lines as its steps. The version comes from the Allure BOM.
+        -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-cucumber7-jvm</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Logging implementation for this module's own tests; config in src/test/resources/logback-test.xml. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -65,5 +106,23 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <!--
+            The scenario files live in src/test/features (the tests), code in src/test/java and only
+            configuration in src/test/resources. Naming testResources replaces Maven's default, so
+            the default folder is listed again; the features go on the classpath under features/,
+            which is where the runner's @SelectPackages("features") looks.
+        -->
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>src/test/features</directory>
+                <targetPath>features</targetPath>
+            </testResource>
+        </testResources>
+    </build>
 
 </project>

@@ -1,11 +1,12 @@
 # CI for the lab test-automation framework (spec 006; the Report job is spec 007).
-#   Build           compiles everything and runs the lab-free self-checks.
-#   Workflow checks starts its own Mock Lab and runs the api-tests regression set.
-#   Screen checks   installs a browser, starts its own Mock Lab and runs the
-#                   ui-tests regression set. It runs in parallel with Workflow checks.
-#   Report          runs after both check jobs, collects their Allure result files
-#                   and keeps ONE visual report of the run. It can never turn the
-#                   run red, and it must not be a required check for merging.
+#   Build      compiles everything and runs the lab-free self-checks.
+#   API tests  starts its own Mock Lab and runs the api-tests regression set.
+#   UI tests   installs a browser, starts its own Mock Lab and runs the
+#              ui-tests regression set. It runs in parallel with API tests.
+#   Report     runs after both check jobs, collects their Allure result files
+#              and keeps ONE visual report of the run. It can never turn the
+#              run red, and it must not be a required check for merging.
+# (The two check jobs were named Workflow checks / Screen checks until 2026-10-18.)
 name: CI
 
 on:
@@ -15,7 +16,7 @@ on:
   pull_request:
     branches: [main]
   # A hand-started run from the Actions tab. "family" picks which check job(s)
-  # run; "browser" picks the browser for the Screen checks job.
+  # run; "browser" picks the browser for the UI tests job.
   workflow_dispatch:
     inputs:
       family:
@@ -109,14 +110,14 @@ jobs:
         run: cd mock-lab-app && ./mvnw -B -ntp -q package -DskipTests
 
       # Same idea for the Playwright CLI. Nothing else in this job runs it, so the
-      # Screen checks job used to fetch exec-maven-plugin and its Playwright
+      # UI tests job used to fetch exec-maven-plugin and its Playwright
       # dependency from Maven Central live in "Install the browser", and one short
       # outage there failed that job (run 38224248594). Running the same goal here
       # with a harmless argument puts exactly those artifacts into the Maven cache.
       # --version prints the CLI version and downloads no browser. The cache is
       # written only when its key (every pom.xml) is new, so this takes effect from
       # the first Build after a pom change.
-      - name: Fetch the Playwright CLI (and cache it for Screen checks)
+      - name: Fetch the Playwright CLI (and cache it for UI tests)
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: ./mvnw -B -ntp -N exec:java -Dexec.args="--version"
@@ -132,7 +133,7 @@ jobs:
           python3 .github/scripts/junit_summary.py "Build: api-client" api-client/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
 
   api-tests:
-    name: Workflow checks
+    name: API tests
     # Runs only after Build is green: a broken build skips this job, so the run
     # page shows Build as the failed step (FS 2.2).
     needs: build
@@ -193,7 +194,7 @@ jobs:
       # Only the api-tests module's own reports, so the -am self-checks are not double-counted.
       - name: Summarise results
         if: always()
-        run: python3 .github/scripts/junit_summary.py "Workflow checks" api-tests/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python3 .github/scripts/junit_summary.py "API tests" api-tests/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # always(): stop the lab whether the checks passed, failed or were cancelled.
       - name: Stop the Mock Lab
@@ -229,8 +230,8 @@ jobs:
     # (family=api), so an expression here would show raw as "${{ ... }}". The
     # browser is in the summary title, the cache key and the artifact names.
     # It is also the name to require in branch protection.
-    name: Screen checks
-    # Same gate as Workflow checks: a broken build skips this job (FS 2.2).
+    name: UI tests
+    # Same gate as API tests: a broken build skips this job (FS 2.2).
     needs: build
     # Push and PR runs always include it; a hand-started run skips it when the
     # engineer picked family=api.
@@ -239,11 +240,11 @@ jobs:
     timeout-minutes: 15
     env:
       ENVIRONMENT: ci
-      # This job's own lab, on its own runner VM: no clash with Workflow checks.
+      # This job's own lab, on its own runner VM: no clash with API tests.
       BASE_URL: http://localhost:8080
       # Read by the framework (spec 005) to pick the Playwright browser.
       BROWSER: ${{ inputs.browser || 'chromium' }}
-      # API_TOKEN is set by the "Choose the access key" step (see Workflow checks).
+      # API_TOKEN is set by the "Choose the access key" step (see API tests).
     steps:
       # Epoch seconds at job start, for the duration line in the summary below.
       - name: Record the job start
@@ -297,12 +298,12 @@ jobs:
       - name: Install the browser
         run: ./mvnw -B -ntp -N exec:java -Dexec.args="install --with-deps $BROWSER"
 
-      # Same script as in Workflow checks: build the lab jar, start it, wait for /health.
+      # Same script as in API tests: build the lab jar, start it, wait for /health.
       - name: Start the Mock Lab
         run: .github/scripts/lab.sh start
 
       # -pl ui-tests -am: this module plus the modules it depends on. Same tag
-      # filter as Workflow checks: the regression lab checks plus this module's
+      # filter as API tests: the regression lab checks plus this module's
       # own self-checks, which need the running lab for the pre-flight listener.
       - name: Run the screen checks
         env:
@@ -318,7 +319,7 @@ jobs:
       # $BROWSER (job env) puts the browser into the summary title.
       - name: Summarise results
         if: always()
-        run: python3 .github/scripts/junit_summary.py "Screen checks ($BROWSER)" ui-tests/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python3 .github/scripts/junit_summary.py "UI tests ($BROWSER)" ui-tests/target/surefire-reports "$JOB_START" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # always(): stop the lab whether the checks passed, failed or were cancelled.
       - name: Stop the Mock Lab
@@ -392,6 +393,15 @@ jobs:
       - name: Check out the code
         uses: actions/checkout@v7
 
+      # The report-content check below searches the result files for the access
+      # key the check jobs used, so it needs that same key: the same script as in
+      # the check jobs (repository secret, else the lab's documented local key),
+      # masked before it reaches the environment. Nothing here talks to a lab.
+      - name: Choose the access key
+        env:
+          SECRET_API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: .github/scripts/access_key.sh
+
       # The report is built by a Maven plugin (allure-maven), so this job needs
       # the same JDK and the same Maven cache as the others.
       - name: Set up Java 17
@@ -430,12 +440,17 @@ jobs:
       # files into target/allure-results, where report.sh expects them. That
       # gives the fresh results of a re-run job plus the other family's latest,
       # and no check twice. Result file names are random UUIDs, so the two
-      # families cannot overwrite each other. The count goes to the next steps.
+      # families cannot overwrite each other. The same artifact's module folder
+      # (api-tests/target or ui-tests/target: Surefire reports and run log) goes
+      # back where the check job wrote it, because the report-content check
+      # below compares the report with them. The count of result files and the
+      # number of families that delivered any go to the next steps.
       - name: Collect the newest results of each family
         id: collect
         run: |
           DEST=target/allure-results
           mkdir -p "$DEST"
+          FAMILIES=0
           for family in workflow screen; do
             dir="$RUNNER_TEMP/allure-artifacts/$family"
             best=""
@@ -458,7 +473,14 @@ jobs:
             fi
             if [ -n "$best" ] && [ -d "$best/target/allure-results" ]; then
               cp -R "$best/target/allure-results/." "$DEST/"
+              FAMILIES=$((FAMILIES + 1))
               echo "$family checks: result files taken from $from"
+              for module in api-tests ui-tests; do
+                if [ -d "$best/$module/target" ]; then
+                  mkdir -p "$module/target"
+                  cp -R "$best/$module/target/." "$module/target/"
+                fi
+              done
             else
               echo "$family checks: no result files (the job was skipped, or it failed before the checks ran)"
             fi
@@ -466,6 +488,7 @@ jobs:
           COUNT=$(find "$DEST" -maxdepth 1 -type f -name '*-result.json' | wc -l | tr -d ' ')
           echo "Result files collected: $COUNT"
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "families=$FAMILIES" >> "$GITHUB_OUTPUT"
 
       # The one way to build the report (a guard test forbids calling the Maven
       # goal here): the script switches the tool's analytics off and checks the
@@ -478,7 +501,7 @@ jobs:
 
       # One self-contained HTML file, kept with the run. The name says it is the
       # report and which browser the screen checks used (computed like BROWSER in
-      # Screen checks). run_attempt: a re-run keeps its own report next to the
+      # UI tests). run_attempt: a re-run keeps its own report next to the
       # first attempt's instead of replacing it (FS 2.6). Default retention.
       - name: Keep the report
         id: keep
@@ -488,6 +511,40 @@ jobs:
           name: allure-report-${{ inputs.browser || 'chromium' }}-${{ github.run_attempt }}
           path: target/site/allure-maven-plugin/index.html
           if-no-files-found: warn
+
+      # Spec 008: reads the collected result files (with the Surefire reports and
+      # the run log put back by "Collect") and checks what a reader meets in the
+      # report: the family / topic / sub-group tree, short names, steps, request
+      # lines, plain set-up names, no secret. After "Keep the report", so a red
+      # check never costs the report; !cancelled() so it still runs when only the
+      # report build failed (it reads the result files, not the page).
+      # -pl without -am leaves the root project out, so its validate-phase clean
+      # does not empty target/allure-results; no "clean" for the same reason.
+      # The test skips itself unless the results are those of one complete run,
+      # so when both families delivered results the step also asserts, from the
+      # Surefire XML, that it ran and skipped nothing. A failure turns this job
+      # red; the job-level continue-on-error keeps the run's verdict out of it.
+      - name: Check the report's content
+        id: content
+        if: ${{ !cancelled() && steps.collect.outcome == 'success' && steps.collect.outputs.count != '0' }}
+        env:
+          FAMILIES: ${{ steps.collect.outputs.families }}
+        run: |
+          ./mvnw -B -ntp -pl common,test-data,api-client test -Dtest=Spec008ReportContentAcceptanceTest -Dsurefire.failIfNoSpecifiedTests=false
+          XML=api-client/target/surefire-reports/TEST-com.labflow.client.pipeline.Spec008ReportContentAcceptanceTest.xml
+          if [ "$FAMILIES" != "2" ]; then
+            echo "::notice title=Report content not checked::only one family's results were collected; the check needs a complete run and skipped itself"
+          elif [ ! -f "$XML" ] || grep -q ' tests="0"' "$XML" || ! grep -q ' skipped="0"' "$XML"; then
+            echo "::error title=Report content check did not run::both families delivered results, but the check skipped (the results are not those of one complete run, see the test's skip reason above)"
+            exit 1
+          else
+            echo "Report content check ran: $(grep -o ' tests="[0-9]*"' "$XML" | head -n 1) skipped=\"0\""
+          fi
+
+      # Same summary as the other jobs, for the one class the step above ran.
+      - name: Summarise the report check
+        if: ${{ !cancelled() && steps.content.outcome != 'skipped' }}
+        run: python3 .github/scripts/junit_summary.py "Report content" api-client/target/surefire-reports | tee -a "$GITHUB_STEP_SUMMARY"
 
       # always(): runs even after a failed step, because that is exactly when a
       # reader needs to know why there is no report (FS 2.7). It only reports:

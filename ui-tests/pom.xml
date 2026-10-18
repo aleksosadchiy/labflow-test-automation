@@ -15,14 +15,16 @@
     <description>The lab's screen checks through a real browser: Page Objects in main code, checks in test code.</description>
 
     <!--
-        Whole-run backstop against a hang (spec 004, Slice 8). Two layers of time limit:
-        - junit-platform.properties sets a per-test JUnit limit of 2 min. A stuck check then fails
-          under its own [Scenario: ...] name, and the run moves on to the next check.
-        - This setting is Surefire's forkedProcessTimeoutInSeconds, 10 min. The JUnit limit does not
-          reach code in extension callbacks: the browser launch, newContext, tracing and close in
-          BrowserExtension. If the forked test JVM gets stuck there, or anywhere else, Surefire
-          kills the JVM and fails the build ("There was a timeout in the fork"). A local run or a
-          CI job therefore ends within about 10 minutes instead of hanging for hours.
+        Whole-run backstop against a hang (spec 004, Slice 8; reworked in spec 008). Two layers of time limit:
+        - ScenarioWatchdog, started by UiHooks when a screen scenario starts, gives it 2 min. Then it
+          logs the scenario's name and a thread dump and interrupts the scenario's thread. Cucumber
+          has no per-scenario limit, so this replaces the per-test JUnit limit the Jupiter checks had
+          (junit-platform.properties keeps that limit only for the framework's own self-checks).
+        - This setting is Surefire's forkedProcessTimeoutInSeconds, 10 min. An interrupt only frees a
+          call that listens for it. If a call ignores it (some Playwright driver calls), or the
+          forked test JVM gets stuck anywhere else, Surefire kills the JVM and fails the whole build
+          ("There was a timeout in the fork"). A local run or a CI job therefore ends within about
+          10 minutes instead of hanging for hours.
         Set as the property Surefire reads (surefire.timeout), not in the plugin <configuration>.
         A value in <configuration> would ignore the command line (checked with -X). This way
         -Dsurefire.timeout=<seconds> still overrides it. It also leaves the root's
@@ -71,18 +73,6 @@
             <scope>test</scope>
         </dependency>
         <!--
-            Test-only, added during Slice 9 (Feature Testing & Regression): lets
-            BrowserExtensionArtifactsTest run a couple of throwaway probe checks through the real
-            JupiterTestEngine, in-process, to prove BrowserExtension's failure-artifact behaviour
-            (FS 2.9 ¶2 and ¶4) without going through a forked Maven run. Version comes from the
-            root's junit-bom import, same as junit-jupiter above.
-        -->
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-testkit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!--
             Allure's JUnit 5 adapter (allure-jupiter, the new name of allure-junit5): a JUnit
             Platform listener that writes one result file per check into the shared
             target/allure-results at the repository root (allure.properties).
@@ -94,6 +84,47 @@
             <artifactId>allure-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+            Cucumber-JVM: runs the screen checks written as Gherkin scenarios in
+            src/test/features (put on the classpath as features/ by the testResources below). Versions come from the Cucumber BOM in the root pom.
+        -->
+        <!-- Step definitions and hooks as annotated Java methods (@Given, @When, @Then, @Before, @After). -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- A JUnit Platform engine, next to Jupiter: Surefire finds and runs the scenarios in the same `./mvnw test`. -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            JUnit Platform Suite: one @Suite class points at the feature files. Surefire reports results
+            per test class, so scenarios found without a class never reach its verdict; the suite class
+            gives them one. The version comes from the root's junit-bom import.
+        -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Constructor injection: one state object per scenario, shared by the step and hook classes. -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Allure's Cucumber 7 adapter: a Cucumber plugin that writes one result file per scenario,
+            with the scenario's Gherkin lines as its steps. The version comes from the Allure BOM.
+        -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-cucumber7-jvm</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Logging implementation for this module's own tests; config in src/test/resources/logback-test.xml. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -101,5 +132,23 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <!--
+            The scenario files live in src/test/features (the tests), code in src/test/java and only
+            configuration in src/test/resources. Naming testResources replaces Maven's default, so
+            the default folder is listed again; the features go on the classpath under features/,
+            which is where the runner's @SelectPackages("features") looks.
+        -->
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>src/test/features</directory>
+                <targetPath>features</targetPath>
+            </testResource>
+        </testResources>
+    </build>
 
 </project>

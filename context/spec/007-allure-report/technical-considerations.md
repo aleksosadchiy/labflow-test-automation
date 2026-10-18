@@ -166,7 +166,7 @@ _Rejected:_ `allure-rest-assured`'s filter. It attaches the raw request and answ
 
 ## 4. Testing Strategy
 
-Proportionate to a reference project: a few fast tests that pin the decisions, and one lab-backed acceptance pass.
+Proportionate to a small reference project: a few fast tests that pin the decisions, and one lab-backed acceptance pass.
 
 - **Unit, `common`:** `LabChecksAllureListener` with a fake delegate. Tagged identifiers are forwarded, untagged ones are not, plan start and finish are always forwarded.
 - **Unit, `api-tests`:** `AllureStepAppender` (drafted). An INFO line becomes a step, a DEBUG line does not, nothing happens when no check is running.

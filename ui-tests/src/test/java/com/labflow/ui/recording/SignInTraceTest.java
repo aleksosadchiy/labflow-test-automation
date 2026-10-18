@@ -13,7 +13,7 @@ import com.labflow.ui.config.BrowserChoice;
 import com.labflow.ui.config.UiCredentials;
 import com.labflow.ui.pages.LoginPage;
 import com.labflow.ui.pages.SampleListPage;
-import com.labflow.ui.tests.support.BrowserExtension;
+import com.labflow.ui.tests.framework.browser.BrowserPool;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Evidence for FS 2.9 / tech spec §2.5 on the real lab: after a real sign-in with tracing on
- * (the same options {@code BrowserExtension} uses) and one more recorded action, the real
+ * (the same options the scenario hooks use) and one more recorded action, the real
  * password appears in no entry of the saved trace: not in the action log, not in the DOM
  * snapshots (which record {@code type=password} values), not in the network log.
  *
@@ -53,7 +53,7 @@ class SignInTraceTest {
         Path zip = tempDir.resolve("trace.zip");
 
         try (Playwright playwright = Playwright.create();
-             Browser browser = BrowserExtension.browserType(playwright, BrowserChoice.fromEnvironment()).launch();
+             Browser browser = BrowserPool.browserType(playwright, BrowserChoice.fromEnvironment()).launch();
              BrowserContext context = browser.newContext()) {
             context.tracing().start(TraceSettings.startOptions());
             Page page = context.newPage();

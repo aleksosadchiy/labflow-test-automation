@@ -49,7 +49,7 @@ No new entities and no schema (in-memory). Deltas to what exists:
 
 ### 2.3 API Contracts
 
-**Conventions:** JSON in and out; `Authorization: Bearer <key>` on every `/api/**` request; create operations return **201** with a `Location` header; enum values on the wire are **enum names** (`ACCESSIONED`, `BLOOD`), matching the screens and the assignment's example; timestamps are ISO-8601 strings; unknown request fields are ignored (so a client-supplied `id` is silently ignored, consistent with "the lab assigns IDs"); trailing slashes are not matched (`/api/samples/` → 404 "Resource not found.").
+**Conventions:** JSON in and out; `Authorization: Bearer <key>` on every `/api/**` request; create operations return **201** with a `Location` header; enum values on the wire are **enum names** (`ACCESSIONED`, `BLOOD`), matching the screens and the project brief's example; timestamps are ISO-8601 strings; unknown request fields are ignored (so a client-supplied `id` is silently ignored, consistent with "the lab assigns IDs"); trailing slashes are not matched (`/api/samples/` → 404 "Resource not found.").
 
 | Method & Path | Purpose | Success | Rejections (status: message) |
 |---|---|---|---|
@@ -198,7 +198,7 @@ The existing two-argument `createSample` (used by the screen) delegates with no 
 | Jackson leniency: unknown fields are ignored; a JSON number for `patientId` may be coerced to a string | Documented in §2.3. A test decides the coercion behavior; if it is wrong, tighten the mapper rather than the tests. |
 | Read/write tearing (job saved, then mirrored sample) | API reads use the job status. |
 | Logging sensitive data | Never log the `Authorization` header, the token, or patient names. |
-| **The assignment's own example lists `ACCESSIONED → PROCESSING` as a valid transition**, but its workflow diagram (and this spec) put *Ready for Processing* in between | The functional spec wins: only the next stage is accepted, so that example is rejected here. Called out so Phase 1 test authors and the explanation don't trip on it. |
+| **The project brief's own example lists `ACCESSIONED → PROCESSING` as a valid transition**, but its workflow diagram (and this spec) put *Ready for Processing* in between | The functional spec wins: only the next stage is accepted, so that example is rejected here. Called out so Phase 1 test authors and the design write-up don't trip on it. |
 
 **Points where the functional spec is silent, resolved here as assumptions:**
 - **Assumption:** wire values are enum names (`ACCESSIONED`), while messages use display names ("Processing").

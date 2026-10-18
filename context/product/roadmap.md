@@ -1,6 +1,6 @@
-# Product Roadmap: Lab Workflow SDET Automation Framework
+# Product Roadmap: LabFlow Test Automation
 
-_This roadmap outlines the build sequence for a small, production-minded Java test automation framework that simulates a regulated laboratory workflow, prioritized to match what a senior SDET review evaluates most. It focuses on the "what" and "why," not implementation detail._
+_This roadmap outlines the build sequence for a small, production-minded Java test automation framework that simulates a regulated laboratory workflow, prioritized per the project brief's own ranking (section 30). It focuses on the "what" and "why," not implementation detail._
 
 ---
 
@@ -14,7 +14,7 @@ _Before automation can begin: stand up the system under test. This is a practice
 
 - [x] **UI Target Application**
   - [x] **Tiny Front-End Over the Mock Backend:** Build a minimal front-end (Login, Sample List, Create Sample, Sample Details, Report screens) that talks to the mock lab backend, so UI automation exercises the same simulated domain and workflow as the API tests. _(See `context/spec/001-mock-lab-application/`. Underlying domain/service layer also built; the JSON REST API surface was done in spec 002 and CI-runnability in spec 006.)_
-  - [x] **Stable Test Environment:** _(Done in `context/spec/006-ci-cd-pipeline/`: the Screen checks job runs the screens against its own lab on every push and PR.)_ Confirm the front-end is reachable and stable enough for repeated automated runs (no CAPTCHAs, no rate-limiting, predictable test data/state), and runnable locally and in CI alongside the backend.
+  - [x] **Stable Test Environment:** _(Done in `context/spec/006-ci-cd-pipeline/`: the UI tests job (named Screen checks until 2026-10-18) runs the screens against its own lab on every push and PR.)_ Confirm the front-end is reachable and stable enough for repeated automated runs (no CAPTCHAs, no rate-limiting, predictable test data/state), and runnable locally and in CI alongside the backend.
 
 ---
 
@@ -35,7 +35,7 @@ _The foundation: project architecture and REST API test automation — the highe
 
 ### Phase 2
 
-_Senior-level engineering capabilities: UI automation, reliable parallel execution, and isolated test data._
+_Advanced engineering capabilities: UI automation, reliable parallel execution, and isolated test data._
 
 - [x] **UI Automation with Page Object Model** _(Done in `context/spec/004-ui-automation-page-objects/`.)_
   - [x] **Page Objects for Core Screens:** Implement Page Objects for the key UI flows (e.g. Login, Sample List, Create Sample, Sample Details, Report), encapsulating elements and actions rather than exposing locators to tests.
@@ -54,8 +54,9 @@ _Senior-level engineering capabilities: UI automation, reliable parallel executi
 
 ### Phase 3
 
-_Delivery: CI/CD and test reporting._
+_Delivery: CI/CD, test reporting and a visual report of every run._
 
 - [x] **CI/CD Pipeline** _(Done in `context/spec/006-ci-cd-pipeline/`.)_
   - [x] **GitHub Actions Workflow:** Automate checkout, build, and test execution, with API and UI tests running as separate, independently schedulable jobs.
   - [x] **Test Reporting in CI:** Publish pass/fail/skip/duration summaries (via Surefire, Allure, or JUnit XML) with enough failure detail to investigate issues from CI alone.
+  - [x] **Visual Report of a Run:** _(Done in `context/spec/007-allure-report/`.)_ Keep one visual report per run, covering both check families, that shows each check's requests and a failed screen check's picture and recording; it is kept with every automatic run and linked from the run page, and it never changes the run's verdict.

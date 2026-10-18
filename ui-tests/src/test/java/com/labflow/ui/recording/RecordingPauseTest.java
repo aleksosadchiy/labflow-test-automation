@@ -11,7 +11,7 @@ import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Route;
 import com.microsoft.playwright.Tracing;
 import com.labflow.ui.config.BrowserChoice;
-import com.labflow.ui.tests.support.BrowserExtension;
+import com.labflow.ui.tests.framework.browser.BrowserPool;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,7 +66,7 @@ class RecordingPauseTest {
     @BeforeAll
     static void launchBrowser() {
         playwright = Playwright.create();
-        browser = BrowserExtension.browserType(playwright, BrowserChoice.fromEnvironment()).launch();
+        browser = BrowserPool.browserType(playwright, BrowserChoice.fromEnvironment()).launch();
     }
 
     @AfterAll

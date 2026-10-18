@@ -35,8 +35,8 @@ import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
  * that is not a positive whole number stops the run with an exact message.
  *
  * <p>The last tests run a throwaway probe class through the real Jupiter engine with
- * {@link EngineTestKit}, the same pattern as {@code CheckNameInterceptorTest}: the probe is a static
- * nested class, so Surefire's default excludes never run it as a real test. They set the documented
+ * {@link EngineTestKit}: the probe is a static nested class, so Surefire's default excludes never
+ * run it as a real test. They set the documented
  * {@code -DchecksAtOnce} system property, so they prove the path an engineer actually uses.
  *
  * @spec: 005-reliable-isolated-execution

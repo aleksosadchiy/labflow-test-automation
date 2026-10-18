@@ -56,19 +56,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <ol>
  *   <li>[M] first screen shows totals and duration: Allure's own overview page, seen in the
  *       Slice 1 and Slice 5 Verify runs.</li>
- *   <li>[T] each check under its display name: {@code LabChecksRecordedAcceptanceTest} (name in
- *       the real adapter's result); rows without argument values: {@code PlainRowNamesAcceptanceTest}.</li>
- *   <li>[T] verdict and labels: {@code LabChecksRecordedAcceptanceTest} (status and tag labels in
- *       the result); the epic label: [M], Slice 2 and Slice 3 Verify.</li>
+ *   <li>[M] each check under its plain-language name: since spec 008 the scenario's name, written
+ *       by Allure's Cucumber adapter; the name rules are pinned by the feature-file guards.</li>
+ *   <li>[M] verdict and labels: since spec 008 written by Allure's Cucumber adapter and the
+ *       scenario hooks; the epic label: [M], Slice 2 and Slice 3 Verify.</li>
  *   <li>[M] filter by verdict: a feature of the Allure report page itself, not of this
  *       framework; seen in the Slice 3 Verify.</li>
  *   <li>[M] families told apart and viewable alone: epics "Workflow checks" / "Screen checks"
  *       on the base classes ({@code LabRunWiringTest}, {@code UiRunWiringGuardTest}); the report
  *       page's grouping: Slice 3 Verify.</li>
- *   <li>[T] only lab checks, no self-checks: {@code LabChecksAllureListenerTest} (against a fake)
- *       and {@code LabChecksRecordedAcceptanceTest} (against the real adapter), plus the wiring
- *       guards that switch Allure's own listener off; counted against the run: [M], Slice 1
- *       Verify (48 results for 48 checks) and Slice 4 Verify (64 = 16 + 48).</li>
+ *   <li>[T] only lab checks, no self-checks: since spec 008 only Allure's Cucumber adapter
+ *       records, and the wiring guards switch Allure's own JUnit listener off; counted against
+ *       the run: [M], Slice 1 Verify (48 results for 48 checks) and Slice 4 Verify
+ *       (64 = 16 + 48).</li>
  * </ol>
  *
  * <p><b>2.3 A workflow check shows its requests</b>
@@ -91,8 +91,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>[M] a passing screen check has neither: Slice 3 Verify (15 of 16 results without
  *       attachments).</li>
  *   <li>[M] picture or recording not saved, the check still fails with its message: the helper
- *       logs and continues by design (technical-considerations 2.5); the throwaway-failure
- *       self-check {@code BrowserExtensionArtifactsTest} stays green, Slice 3 Verify.</li>
+ *       logs and continues by design (technical-considerations 2.5); a throwaway-failure
+ *       self-check (since removed with the extension) stayed green, Slice 3 Verify.</li>
  * </ol>
  *
  * <p><b>2.5 Nothing sensitive</b>
@@ -139,7 +139,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *       job-level guard); Slice 5 Verify.</li>
  *   <li>[M] the report's count equals the run's own count, with the same verdicts: Slice 1,
  *       Slice 3 and Slice 4 Verify (64 = 16 + 48); the shared tag rule {@code Labels.isLabCheck}
- *       is tested by {@code LabelsTest} and used by both counters.</li>
+ *       is tested by {@code LabelsTest} and used by {@code CheckCountListener}.</li>
  *   <li>[M] at most 10% slower: Slice 6 Verify (33.6 s against 33.0 s, 1.8%); a timing run.</li>
  * </ol>
  *

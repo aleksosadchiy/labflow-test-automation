@@ -14,7 +14,7 @@ Today a program has no way to do any of that. It also cannot create its own pati
 
 This specification adds a programmatic way to work with the same mock lab: everything an automated client does follows exactly the same lab rules as the screens, and anything it does is immediately visible on screen (and vice versa). It also covers starting the lab reliably, with one command, on a developer machine and in the automated build.
 
-Success is measured by whether the API test suite in Phase 1 can automate every positive and negative scenario from the assignment against this lab, every time it is started, without any manual set-up.
+Success is measured by whether the API test suite in Phase 1 can automate every positive and negative scenario from the project brief against this lab, every time it is started, without any manual set-up.
 
 ---
 
@@ -86,7 +86,7 @@ In this specification, the **client** is an automated program (such as a test su
     - [x] When a client asks for a sample to move to a stage name that does not exist, then it is rejected with the message "Invalid status."  _(verified: NOT_A_STAGE → 400 "Invalid status.")_
     - [x] When a client asks for a stage change without naming a stage, then it is rejected with the message "Status is required."  _(verified: {} and blank → 400 "Status is required.")_
     - [x] When a client asks for a stage change on a sample that does not exist, then it is told "Sample not found."  _(verified: SMP-NOPE → 404 "Sample not found.")_
-    - [x] When a client moves a sample forward, then the new stage is shown on the Sample List and Sample Details screens for that sample.  _(verified: real browser: after PUT READY_FOR_PROCESSING and PUT PROCESSING, both the Sample List row and Sample Details show the new stage — docs/screenshots/002-mock-lab-rest-api-sample-details-first-api-stage-change.png, docs/screenshots/002-mock-lab-rest-api-sample-details-after-api-stage-change.png; stage text is upper-case as on the spec-001 screens, accepted by the user)_
+    - [x] When a client moves a sample forward, then the new stage is shown on the Sample List and Sample Details screens for that sample.  _(verified: real browser: after PUT READY_FOR_PROCESSING and PUT PROCESSING, both the Sample List row and Sample Details show the new stage — screenshot 002-mock-lab-rest-api-sample-details-first-api-stage-change.png, screenshot 002-mock-lab-rest-api-sample-details-after-api-stage-change.png; stage text is upper-case as on the spec-001 screens, accepted by the user; screenshots not kept in the repository since 2026-10-18)_
 
 ### 2.6. Processing Progress, Results, and Reports
 
@@ -96,7 +96,7 @@ In this specification, the **client** is an automated program (such as a test su
     - [x] When a client asks for the processing progress of a sample that does not exist, then it is told "Sample not found."  _(verified: unknown sample → 404 "Sample not found.")_
     - [x] When a client asks for the test result of a sample that has reached "Result Ready," then it is shown the sample identifier, the test name, and the result value.  _(verified: at RESULT_READY → sampleId, "Genomic Panel", "Normal")_
     - [x] When a client asks for the test result of a sample that has not yet reached "Result Ready," then it is told "Test result is not ready yet."  _(verified: before RESULT_READY → 409 "Test result is not ready yet.")_
-    - [x] When a client asks for the report of a sample that has reached "Report Generated," then it is shown the sample identifier, the test name, the result value, and the date the report was generated — the same content as the View Report screen.  _(verified: at REPORT_GENERATED → 200 with sampleId, testName, resultValue, generatedAt; identical to the View Report screen in a real browser — docs/screenshots/002-mock-lab-rest-api-view-report-matches-api-report.png)_
+    - [x] When a client asks for the report of a sample that has reached "Report Generated," then it is shown the sample identifier, the test name, the result value, and the date the report was generated — the same content as the View Report screen.  _(verified: at REPORT_GENERATED → 200 with sampleId, testName, resultValue, generatedAt; identical to the View Report screen in a real browser — screenshot 002-mock-lab-rest-api-view-report-matches-api-report.png; screenshots not kept in the repository since 2026-10-18)_
     - [x] When a client asks for the report of a sample that has not yet reached "Report Generated," then it is told "Report is not ready yet."  _(verified: before REPORT_GENERATED → 409 "Report is not ready yet.")_
     - [x] When a client asks for the test result or report of a sample that does not exist, then it is told "Sample not found."  _(verified: result, report and progress of an unknown sample → 404 "Sample not found.")_
 
@@ -113,8 +113,8 @@ In this specification, the **client** is an automated program (such as a test su
 
 - **As a** lab-workflow user, **I want** anything done by a client to appear on screen and anything done on screen to be available to clients, **so that** UI tests and API tests can rely on one shared lab.
   - **Acceptance Criteria:**
-    - [x] When a client registers a sample, then a signed-in user opening the Sample List screen sees that sample with the status "Accessioned."  _(verified: real browser: API-registered sample shows on the Sample List as "SMP-… | Alice Johnson | ACCESSIONED" — docs/screenshots/002-mock-lab-rest-api-sample-list-api-registered-sample.png)_
-    - [x] When a user registers a sample on the Create Sample screen, then a client can retrieve that sample and see the same details.  _(verified: real browser: sample created on the Create Sample screen (PAT-1002 / TISSUE) → GET /api/samples/{id} returns the same patient, type and status and lists it — docs/screenshots/002-mock-lab-rest-api-create-sample-form-filled.png, docs/screenshots/002-mock-lab-rest-api-sample-details-registered-on-screen.png)_
+    - [x] When a client registers a sample, then a signed-in user opening the Sample List screen sees that sample with the status "Accessioned."  _(verified: real browser: API-registered sample shows on the Sample List as "SMP-… | Alice Johnson | ACCESSIONED" — screenshot 002-mock-lab-rest-api-sample-list-api-registered-sample.png; screenshots not kept in the repository since 2026-10-18)_
+    - [x] When a user registers a sample on the Create Sample screen, then a client can retrieve that sample and see the same details.  _(verified: real browser: sample created on the Create Sample screen (PAT-1002 / TISSUE) → GET /api/samples/{id} returns the same patient, type and status and lists it — screenshot 002-mock-lab-rest-api-create-sample-form-filled.png, screenshot 002-mock-lab-rest-api-sample-details-registered-on-screen.png; screenshots not kept in the repository since 2026-10-18)_
     - [x] When several clients register samples at the same time, then every sample receives its own distinct identifier and none are lost or overwritten.  _(verified: 40 simultaneous registrations → 40 distinct ids, all listed)_
     - [x] When two clients each move a different sample forward at the same time, then each sample ends at the stage that client asked for and neither is affected by the other.  _(verified: 6 clients moved 6 different samples simultaneously → each ended at its requested stage; an untouched bystander stayed ACCESSIONED)_
 

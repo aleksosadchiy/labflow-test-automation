@@ -6,9 +6,11 @@
 # the whole suite has passed against it.
 #
 # Major versions are ignored on purpose: JUnit 6, RestAssured 6 and Spring Boot 4
-# are migrations to plan, not routine updates. Security updates are not affected
-# by this ignore rule. Minor and patch updates arrive as one grouped pull request
-# per ecosystem, to keep the noise down.
+# are migrations to plan, not routine updates. Cucumber 8 is covered by the same
+# rule: it is built against JUnit 6, so it can only come together with that
+# migration. Security updates are not affected by this ignore rule. Minor and
+# patch updates arrive as one grouped pull request per ecosystem, to keep the
+# noise down.
 version: 2
 updates:
   # The test-automation reactor: versions live in the root pom.xml.

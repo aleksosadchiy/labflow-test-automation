@@ -10,7 +10,7 @@
 
 Create the test framework as a Maven multi-module reactor at the repository root, next to (but not including) the standalone `mock-lab-app`. Three modules only, matching the functional spec: `common` (the lab's shared concepts), `api-client` (the only code that talks to the lab), `api-tests` (the workflow checks). Tests follow a strict layering: **Test → Service → Api → RestAssured**. A check never contains HTTP details.
 
-Key design ideas, each explainable in a review:
+Key design ideas, each easy to explain:
 
 1. **Two ways to call every operation.** A "happy" method returns a domain object and fails loudly on an unexpected status; an `attempt…` twin returns a `LabResponse<T>` wrapper (status, headers, typed body, error) for scenarios where a refusal is the *expected* result. Refusals are outcomes, not exceptions.
 2. **Custom AssertJ assertions** (`assertThat(response).isRejectedAs(CONFLICT, "…")`) so rejection checks read as business statements and verify kind, exact message and headers in one place.
@@ -46,7 +46,7 @@ _Assumption: base Java package `com.labflow`, Maven groupId `com.labflow`, root 
 | Root `dependencyManagement` | `junit-bom` 5.14.4, `rest-assured` 5.5.7, `jackson-bom` 2.19.2, `assertj-core` 3.27.7, and the three sibling modules at `${project.version}`. |
 | Root `pluginManagement` | `maven-compiler-plugin` 3.15.0 and `maven-surefire-plugin` 3.6.0 versions only; Surefire stays at defaults. |
 | Children | No versions and no properties of their own. |
-| Test plugin | **Surefire** (`*Test` naming, `test` phase), not Failsafe. Design point: Failsafe earns its keep when a `post-integration-test` teardown must still run (stop a server/container) or slow tests need separating; here the tests neither start nor stop the lab, and Failsafe would turn "one command" into `verify`. |
+| Test plugin | **Surefire** (`*Test` naming, `test` phase), not Failsafe. Design note: Failsafe earns its keep when a `post-integration-test` teardown must still run (stop a server/container) or slow tests need separating; here the tests neither start nor stop the lab, and Failsafe would turn "one command" into `verify`. |
 | Surefire settings that must stay default | `failIfNoTests=false` (modules `common`/`api-client` legitimately have few tests), no `testFailureIgnore`, no `redirectTestOutputToFile` (it would hide the pre-flight message). |
 | Versions | JUnit 5.x line (architecture says JUnit 5). JUnit 6.1 and RestAssured 6.0 exist but were not spiked. |
 

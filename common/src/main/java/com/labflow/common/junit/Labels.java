@@ -31,9 +31,8 @@ public final class Labels {
     /**
      * Whether these tags belong to a lab check: one of them is {@value #API} or {@value #UI}.
      *
-     * <p>The framework's own self-checks carry neither tag. {@link CheckCountListener} and
-     * {@link LabChecksAllureListener} both use this one rule, so the number of checks the run
-     * says it executed and the number of checks in the report cannot drift apart.
+     * <p>The framework's own self-checks carry neither tag. {@link CheckCountListener} counts with
+     * this rule, so the self-checks never inflate the number of checks the run says it executed.
      *
      * @param tags the tags of one test or container, as given by {@code TestIdentifier.getTags()}
      */

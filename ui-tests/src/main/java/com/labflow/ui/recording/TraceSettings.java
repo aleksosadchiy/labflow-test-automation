@@ -6,10 +6,10 @@ import com.microsoft.playwright.Tracing;
  * The one place that defines how a screen check's Playwright trace is recorded (tech spec §2.5):
  * screenshots and DOM snapshots on, test sources off.
  *
- * <p>Shared by {@code BrowserExtension}, which starts tracing for every check, and by
+ * <p>Shared by the scenario hooks, which start tracing for every check, and by
  * {@link RecordingPause}, which restarts tracing after the sign-in. Both must use the same
  * options, or a trace resumed after the pause would silently record less (or more) than one
- * started by the extension.
+ * started by the hooks.
  */
 public final class TraceSettings {
 

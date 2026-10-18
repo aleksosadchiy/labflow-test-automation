@@ -2,7 +2,8 @@
 <!--
   Run log for the checks.
   - Console: INFO and above, one short line per request. The check name comes from the MDC key
-    "check" (set by CheckNameInterceptor), so every line says which check it belongs to.
+    "check" (RunLog.CHECK_NAME_KEY, set by the scenario hooks), so every line says which check it
+    belongs to.
   - File target/logs/ui-tests.log: everything at DEBUG from our own loggers (lab.http), rewritten
     on every run (append=false) and removed by "clean". The path is relative because Surefire runs
     with the module as its working directory.

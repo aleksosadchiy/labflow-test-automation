@@ -1,4 +1,4 @@
-# Product Definition: Lab Workflow SDET Automation Framework
+# Product Definition: LabFlow Test Automation
 
 - **Version:** 1.0
 - **Status:** Proposed
@@ -9,32 +9,32 @@
 
 ### 1.1. Project Vision & Purpose
 
-To build a small, production-minded Java test automation framework that demonstrates senior-level SDET engineering practices — API automation, UI automation, clean architecture, parallelism, test-data isolation, and CI/CD — by simulating a simplified, regulated laboratory workflow (patient → order → sample → processing → report), so the author is fully prepared for a technical review and can speak to every design decision with confidence.
+To build a small, production-minded Java test automation framework that demonstrates sound test-automation engineering practices — API automation, UI automation, clean architecture, parallelism, test-data isolation, and CI/CD — by simulating a simplified, regulated laboratory workflow (patient → order → sample → processing → report), with every design decision recorded and explained so the project can serve as a reference.
 
 _Source: derived directly from `context/project-brief.md`._
 
 ### 1.2. Target Audience
 
-Primarily a single user: the author, building a reference project in a regulated laboratory domain. Secondarily, the technical reviewers who will read the code and ask about it — the framework functions as a portfolio artifact they will evaluate.
+Primarily a single user: the author, who builds and maintains the framework and needs to be able to explain every part of it. Secondarily, technical readers and reviewers who read the code to learn from it or judge its design — the framework functions as a reference project for them.
 
 ### 1.3. User Personas
 
 - **Persona 1: "Alex, the Author"**
-  - **Role:** the author, builds and rehearses the project over roughly 5 days.
+  - **Role:** Test automation engineer, builds the project over roughly 5 days.
   - **Goal:** Ship a small, clean framework that visibly demonstrates real-world skills (not just checkbox coverage), and be able to explain every architectural choice.
-  - **Frustration:** Limited time; risk of over-engineering or under-preparing; needs to prioritize what actually gets evaluated.
+  - **Frustration:** Limited time; risk of over-engineering or leaving gaps; needs to prioritize what matters most.
 
-- **Persona 2: "Dana, the Reviewer"** _(assumption — not stated explicitly in the source document, inferred from its review and evaluation focus)_
-  - **Role:** Senior technical reviewer assessing automation engineering maturity.
-  - **Goal:** Quickly judge whether the author understands framework architecture, test design, and regulated-environment testing concerns — not just whether tests pass.
-  - **Frustration:** Sees many projects that write large numbers of shallow tests or over-engineered infrastructure instead of demonstrating sound judgment.
+- **Persona 2: "Dana, the Reviewer"** _(assumption — not stated explicitly in the source document, inferred from its design-question and quality focus)_
+  - **Role:** Technical reviewer reading the repository to judge its automation engineering maturity.
+  - **Goal:** Quickly see whether the framework gets architecture, test design, and regulated-environment testing concerns right — not just whether tests pass.
+  - **Frustration:** Sees many frameworks with large numbers of shallow tests or over-engineered infrastructure instead of sound judgment.
 
 ### 1.4. Success Metrics
 
 - The repository can be cloned on a clean machine and `mvn clean test` runs successfully end-to-end.
-- Every item in the assignment's "Expected Final Project" checklist is present (Maven multi-module, JUnit 5, REST API automation, UI automation with POM, positive/negative tests, test-data builders, parallel execution, tags, logging, reporting, GitHub Actions, README, clean Git history).
-- The author can clearly explain all 10 points in the "Definition of Done" (architecture, module separation, API layer, UI automation, Page Objects, test-data isolation, parallel execution, CI execution, failure investigation, and production-readiness gaps) and deliver the prepared 2-minute pitch.
-- Built within the suggested 5-day preparation window without unnecessary scope creep (see Out-of-Scope).
+- Every item in the project brief's "Expected Final Project" checklist is present (Maven multi-module, JUnit 5, REST API automation, UI automation with POM, positive/negative tests, test-data builders, parallel execution, tags, logging, reporting, GitHub Actions, README, clean Git history).
+- The author can clearly explain all 10 points in the "Definition of Done" (architecture, module separation, API layer, UI automation, Page Objects, test-data isolation, parallel execution, CI execution, failure investigation, and production-readiness gaps) and give the 2-minute project summary.
+- Built within the suggested 5-day build window without unnecessary scope creep (see Out-of-Scope).
 
 ---
 
@@ -51,7 +51,7 @@ Primarily a single user: the author, building a reference project in a regulated
 
 ### 2.2. User Journey
 
-The author clones the repository and scaffolds a Maven multi-module project (`common`, `api-client`, `api-tests`, `ui-tests`, `test-data` or a simpler 3-module equivalent). They build domain models and an API client layer, then write positive and negative API tests against the simulated lab workflow. Next, they add UI automation using Page Objects against a small local/public test app. They layer in parallel execution, test-data isolation, tags, logging, and reporting, then wire up a GitHub Actions pipeline that runs API and UI tests as separate jobs and publishes results. Finally, they rehearse explaining the architecture and every design decision.
+The author clones the repository and scaffolds a Maven multi-module project (`common`, `api-client`, `api-tests`, `ui-tests`, `test-data` or a simpler 3-module equivalent). They build domain models and an API client layer, then write positive and negative API tests against the simulated lab workflow. Next, they add UI automation using Page Objects against a small local/public test app. They layer in parallel execution, test-data isolation, tags, logging, and reporting, then wire up a GitHub Actions pipeline that runs API and UI tests as separate jobs and publishes results. Finally, they walk through the architecture and record the rationale for every design decision.
 
 ---
 
@@ -60,7 +60,7 @@ The author clones the repository and scaffolds a Maven multi-module project (`co
 ### 3.1. What's In-Scope for this Version
 
 - A Maven multi-module Java project with clear module separation.
-- A simplified, conceptual lab domain (Patient, Order, Sample, Processing Job, Test Result, Report) and workflow (Accessioned → Ready for Processing → Processing → Sequencing → Bioinformatics → Quality Check → Result Ready → Report Generated) — explicitly not a reproduction of any real laboratory system.
+- A simplified, conceptual lab domain (Patient, Order, Sample, Processing Job, Test Result, Report) and workflow (Accessioned → Ready for Processing → Processing → Sequencing → Bioinformatics → Quality Check → Result Ready → Report Generated) — explicitly not a reproduction of any real laboratory's implementation.
 - REST API automation (Retrofit/OkHttp or RestAssured) with positive and negative coverage.
 - UI automation via Page Object Model against a small local/public test application.
 - JUnit 5 with parameterized tests, tags (`api`, `ui`, `smoke`, `regression`), and parallel execution.
@@ -68,19 +68,19 @@ The author clones the repository and scaffolds a Maven multi-module project (`co
 - Externalized configuration (no hardcoded environment values; base URL, API token, browser, environment via CLI args or env vars).
 - GitHub Actions CI/CD pipeline with separate API/UI jobs and published test results.
 - Logging (via a real logging framework, not `System.out.println`) and test reporting.
+- A behaviour-driven (BDD) layer: since spec 008 every lab check is written as a plain-language Gherkin scenario (Given / When / Then) and run by Cucumber-JVM 7, and the visual report shows each scenario's lines as its steps. The earlier decision to leave this layer out (2026-10-11, because the project brief marks it optional and ranks it last) was reversed by the owner on 2026-10-12: readable scenarios are what makes the report understandable to a reader who has not seen the code.
 - Documentation: README explaining structure, setup, and how to run tests; clean Git history.
 
 ### 3.2. What's Out-of-Scope (Non-Goals)
 
 - Real bioinformatics or genetic analysis logic.
-- Reproducing any real laboratory's internal architecture or business logic.
+- Reproducing any real laboratory vendor's internal architecture or business logic.
 - Complex infrastructure such as Kubernetes.
 - Maximizing test count or chasing 100% code coverage.
 - A sophisticated or polished frontend.
 - Production-grade authentication/authorization.
 - Complicated database setups.
-- A Cucumber/BDD layer: the assignment marks it optional and ranks it last, so it is left out.
 
 ---
 
-_Note: This is a self-contained practice/reference project, not a customer-facing product. Sections above have been adapted accordingly — "target audience" and "success metrics" are framed around review readiness and reviewer evaluation rather than end-user adoption._
+_Note: This is a self-contained practice and reference project, not a customer-facing product. Sections above have been adapted accordingly — "target audience" and "success metrics" are framed around the author's understanding and reviewer judgment rather than end-user adoption._

@@ -113,7 +113,7 @@ Job-level `env` on both check jobs; the same values reach the lab and Maven:
 - **Rejected alternatives:**
   - `dorny/test-reporter` and `EnricoMi/publish-unit-test-result-action` need `checks: write` (not granted on fork PRs) and add a third-party dependency.
   - `mikepenz/action-junit-report` in summary-only mode is the closest fallback.
-  - A ~60-line script owned and explained in the repo is the better answer.
+  - A ~60-line script owned and explained in the repo is the easier one to explain and defend.
 
 ### 2.8. Artifacts (FS §2.5)
 

@@ -15,7 +15,7 @@ This specification delivers the first working version of that framework. It has 
 1. **A project foundation** — a clearly organised project in which every part has one responsibility, and which knows the lab's core concepts (patient, order, sample, processing job, test result, report) and the eight-stage workflow from "Accessioned" to "Report Generated".
 2. **Automated checks of the lab's workflow** — a set of checks that follow the happy-path journey from a new patient to a retrieved report, and a set of checks that prove the lab correctly refuses bad requests. Each check reads as a business scenario, not as a list of technical details.
 
-In this specification a **check** means one automated test, the **engineer** is whoever runs the framework (in practice, the author rehearsing, or a reviewer), and the **lab** is the Mock Lab.
+In this specification a **check** means one automated test, the **engineer** is whoever runs the framework (in practice, the author, or a reviewer), and the **lab** is the Mock Lab.
 
 The problem today: nothing verifies the lab automatically, so every claim that "the lab works" rests on manual clicking and one-off scripts. The desired outcome is that the engineer runs one command, gets a clear pass/fail verdict on the lab's workflow rules, and — when something fails — can tell at a glance whether the lab or the check is at fault.
 

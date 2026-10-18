@@ -38,6 +38,8 @@
         <logback.version>1.6.5</logback.version>
         <!-- The 2.x line on purpose: Allure 3.0 is built against JUnit 6, this project is on JUnit 5. -->
         <allure.version>2.35.5</allure.version>
+        <!-- The 7.x line on purpose, for the same reason: Cucumber 8 is built against JUnit 6, this project is on JUnit 5.14. -->
+        <cucumber.version>7.34.9</cucumber.version>
 
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
@@ -63,6 +65,18 @@
                 <groupId>io.qameta.allure</groupId>
                 <artifactId>allure-bom</artifactId>
                 <version>${allure.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!--
+                Cucumber-JVM: runs the lab checks written as Gherkin scenarios (*.feature files).
+                Its BOM (bill of materials) gives every io.cucumber artifact one version, so the
+                check modules name the artifacts they need and carry no version.
+            -->
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-bom</artifactId>
+                <version>${cucumber.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -238,6 +252,10 @@
                 spaces, spaces instead of tabs, a newline at the end of every file.
                 Not bound to a build phase: `./mvnw spotless:check` fails on a violation (CI's Build
                 job runs it) and `./mvnw spotless:apply` fixes the files.
+                The scenario files (*.feature) get two of those rules only: no trailing spaces and
+                a newline at the end. Spotless has no Gherkin formatter, so their indentation is
+                left as written. The path is relative to each module; a module with no such file
+                simply has nothing to check.
             -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
@@ -253,6 +271,15 @@
                         </indent>
                         <endWithNewline/>
                     </java>
+                    <formats>
+                        <format>
+                            <includes>
+                                <include>src/test/features/**/*.feature</include>
+                            </includes>
+                            <trimTrailingWhitespace/>
+                            <endWithNewline/>
+                        </format>
+                    </formats>
                 </configuration>
             </plugin>
             <!--

@@ -106,7 +106,7 @@ Success is measured by four things:
 - Running screen checks in several browsers on every change (a hand-started run may choose the browser).
 - Branch-protection rules that block merging on a red run: these are repository settings the owner switches on by hand. The README may describe how.
 - Richer report formats or dashboards beyond the run-page summary (for example Allure).
-- The full README rewrite, clean history and project walkthrough (**Phase 3 — Documentation & Review Readiness**); only the automatic-run section and badge are added here.
+- The full README rewrite, clean history and design walkthrough (**Phase 3 — Documentation & Walkthrough**); only the automatic-run section and badge are added here.
 - The optional Cucumber demonstration (**Phase 3 — Optional BDD Layer**).
 - Any change to the lab or to the checks themselves, except where the automatic run reveals an environment problem that must be fixed for stability (recorded as a finding).
 

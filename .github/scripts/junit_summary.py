@@ -56,7 +56,11 @@ def main(argv):
 
     total = skipped = 0
     suite_time = 0.0
-    failed = []  # (check name, short class name, message)
+    # (check name, message). No class column: every lab check is a scenario
+    # run through one suite class per module, so a class column would repeat
+    # that one name on every row. The name is the scenario's own short name,
+    # exactly what the reader types into the report's search box.
+    failed = []
     for path in files:
         try:
             suite = ET.parse(path).getroot()
@@ -72,8 +76,7 @@ def main(argv):
                 problem = case.find("error")
             if problem is not None:
                 message = problem.get("message") or problem.text or problem.get("type")
-                short_class = (case.get("classname") or "").rsplit(".", 1)[-1]
-                failed.append((cell(case.get("name")), cell(short_class), cell(message)))
+                failed.append((cell(case.get("name")), cell(message)))
             elif case.find("skipped") is not None or case.find("disabled") is not None:
                 skipped += 1
 
@@ -88,10 +91,10 @@ def main(argv):
     print(f"❌ **{title}**: {passed} passed, {len(failed)} failed, "
           f"{skipped} skipped in {took}")
     print()
-    print("| Check | Class | Message |")
-    print("|---|---|---|")
-    for name, short_class, message in failed:
-        print(f"| {name} | {short_class} | {message} |")
+    print("| Check | Message |")
+    print("|---|---|")
+    for name, message in failed:
+        print(f"| {name} | {message} |")
 
 
 if __name__ == "__main__":

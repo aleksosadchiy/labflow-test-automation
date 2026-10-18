@@ -7,6 +7,14 @@
       }
     }
   },
+  "permissions": {
+    "allow": [
+      "Bash(javap *)",
+      "Bash(gh run watch *)",
+      "Bash(gh cache list *)",
+      "Bash(gh secret list *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

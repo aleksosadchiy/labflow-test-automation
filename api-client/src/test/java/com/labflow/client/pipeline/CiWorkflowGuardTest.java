@@ -1,5 +1,5 @@
 // @layer: unit
-// @spec: 006-ci-cd-pipeline, 007-allure-report
+// @spec: 006-ci-cd-pipeline, 007-allure-report, 008-report-navigation
 // @regression
 package com.labflow.client.pipeline;
 
@@ -53,15 +53,22 @@ class CiWorkflowGuardTest {
     }
 
     @Test
-    @DisplayName("There are exactly four jobs named Build, Workflow checks, Screen checks and Report, the two check jobs gated on Build (FS 2.2, spec 007 FS 2.6)")
+    @DisplayName("There are exactly four jobs named Build, API tests, UI tests and Report, the two check jobs gated on Build (FS 2.2, spec 007 FS 2.6; the check jobs were named Workflow checks / Screen checks until 2026-10-18)")
     void jobsAndGate() {
         assertThat(job("build")).contains("name: Build");
-        assertThat(job("api-tests")).contains("name: Workflow checks").containsPattern("(?m)^    needs: build$");
-        assertThat(job("ui-tests")).contains("name: Screen checks").containsPattern("(?m)^    needs: build$");
+        assertThat(job("api-tests")).contains("\n    name: API tests\n").containsPattern("(?m)^    needs: build$");
+        assertThat(job("ui-tests")).contains("\n    name: UI tests\n").containsPattern("(?m)^    needs: build$");
         assertThat(job("report")).contains("name: Report");
         assertThat(job("build")).as("Build is the root of the graph").doesNotContain("needs:");
         assertThat(Pattern.compile("(?m)^  [a-z-]+:$").matcher(YAML.substring(YAML.indexOf("\njobs:")))
                 .results().count()).as("number of jobs").isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("The run page's summaries are titled with the families' plain names, API tests and UI tests (browser in brackets), not the job names (spec 008 Change Log 2026-10-18)")
+    void summaryTitlesUseThePlainFamilyNames() {
+        assertThat(job("api-tests")).contains("junit_summary.py \"API tests\" api-tests/target/surefire-reports");
+        assertThat(job("ui-tests")).contains("junit_summary.py \"UI tests ($BROWSER)\" ui-tests/target/surefire-reports");
     }
 
     @Test
@@ -221,7 +228,7 @@ class CiWorkflowGuardTest {
         String report = job("report");
         assertThat(step(report, "Build the report")).as("the one documented way to build the report")
                 .containsPattern("(?m)^        run: \\.github/scripts/report\\.sh$");
-        assertThat(step(report, "Keep the report")).as("report artifact: browser as Screen checks computes it, then the attempt number")
+        assertThat(step(report, "Keep the report")).as("report artifact: browser as the UI tests job computes it, then the attempt number")
                 .contains("name: allure-report-${{ inputs.browser || 'chromium' }}-${{ github.run_attempt }}")
                 .contains("path: target/site/allure-maven-plugin/index.html");
         assertThat(report.indexOf("- name: Build the report")).as("built before it is kept")
@@ -253,6 +260,25 @@ class CiWorkflowGuardTest {
                 .contains("($RESULT_FILES checks)").contains("[download $REPORT_NAME]($REPORT_URL)");
         assertThat(whenKept).as("written to the run page AND to the step's log, like the 'Summarise results' lines")
                 .contains("echo \"$LINE\" | tee -a \"$GITHUB_STEP_SUMMARY\"");
+    }
+
+    @Test
+    @DisplayName("The Report job checks the report's content after the results are gathered, without emptying them, and fails when the check skipped on a complete run (spec 008)")
+    void reportJobChecksTheReportContent() {
+        String report = job("report");
+        String content = step(report, "Check the report's content");
+        assertThat(code(content)).as("the post-run command of the README, run in the Report job")
+                .contains("./mvnw -B -ntp -pl common,test-data,api-client test -Dtest=Spec008ReportContentAcceptanceTest -Dsurefire.failIfNoSpecifiedTests=false");
+        assertThat(code(content)).as("no 'clean' and no '-am': either would empty the collected target/allure-results first")
+                .doesNotContain("clean").doesNotContain("-am");
+        assertThat(code(content)).as("a check that skipped itself on a complete run fails the step instead of passing silently")
+                .contains("FAMILIES: ${{ steps.collect.outputs.families }}").contains("! grep -q ' skipped=\"0\"' \"$XML\"").contains("exit 1");
+        assertThat(code(step(report, "Collect the newest results of each family")))
+                .as("the check also compares the report with the Surefire reports and the run log, so they are put back from the artifact")
+                .contains("cp -R \"$best/$module/target/.\" \"$module/target/\"")
+                .contains("echo \"families=$FAMILIES\" >> \"$GITHUB_OUTPUT\"");
+        assertThat(report.indexOf("- name: Keep the report")).as("after the report is kept, so a red check never costs the report")
+                .isLessThan(report.indexOf("- name: Check the report's content"));
     }
 
     // ---- helpers -------------------------------------------------------------------------
