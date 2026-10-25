@@ -34,9 +34,9 @@ import com.microsoft.playwright.Tracing;
  * <p>No-op when tracing is not running (just runs the action). Playwright has no "is tracing on"
  * query, and {@code tracing.stop()} without a path silently does nothing when tracing was never
  * started, so it cannot tell the two cases apart. {@code tracing.startChunk()} can: in
- * Playwright 1.63 (verified by experiment, pinned by {@code RecordingPauseTest}) it throws a
- * {@link PlaywrightException} containing {@value #NOT_TRACING} when tracing is off, and when
- * tracing is on it discards the current chunk and begins a new one, which the following
+ * Playwright 1.63 (verified by experiment) and 1.64 (pinned by {@code RecordingPauseTest}) it
+ * throws a {@link PlaywrightException} containing {@value #NOT_TRACING} when tracing is off, and
+ * when tracing is on it discards the current chunk and begins a new one, which the following
  * {@code stop()} discards anyway. Only that exception is swallowed.
  */
 public final class RecordingPause {
