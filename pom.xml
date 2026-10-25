@@ -31,9 +31,9 @@
 
         <junit.version>5.14.4</junit.version>
         <rest-assured.version>5.5.7</rest-assured.version>
-        <jackson.version>2.22.3</jackson.version>
+        <jackson.version>2.22.4</jackson.version>
         <assertj.version>3.27.7</assertj.version>
-        <playwright.version>1.63.0</playwright.version>
+        <playwright.version>1.64.0</playwright.version>
         <slf4j.version>2.0.20</slf4j.version>
         <logback.version>1.6.5</logback.version>
         <!-- The 2.x line on purpose: Allure 3.0 is built against JUnit 6, this project is on JUnit 5. -->
