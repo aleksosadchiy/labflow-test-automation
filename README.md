@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/aleksosadchiy/labflow-test-automation/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aleksosadchiy/labflow-test-automation/actions/workflows/ci.yml?query=branch%3Amain)
 
-_The repository is private, so the CI badge renders only for people with access to it._
-
 A small, production-minded Java test automation framework. It simulates a simplified, regulated laboratory workflow — Patient → Order → Sample → Processing → Report — and demonstrates REST API automation, UI automation with Page Object Model, parallel test execution, test-data isolation, and CI/CD.
 
 > This is a practice and reference project. It does not reproduce any real laboratory system's architecture or business logic — see [`context/project-brief.md`](context/project-brief.md) for the project brief.
