@@ -31,22 +31,22 @@
 
         <junit.version>5.14.4</junit.version>
         <rest-assured.version>5.5.7</rest-assured.version>
-        <jackson.version>2.22.4</jackson.version>
+        <jackson.version>2.23.0</jackson.version>
         <assertj.version>3.27.7</assertj.version>
         <playwright.version>1.64.0</playwright.version>
         <slf4j.version>2.0.20</slf4j.version>
         <logback.version>1.6.6</logback.version>
         <!-- The 2.x line on purpose: Allure 3.0 is built against JUnit 6, this project is on JUnit 5. -->
-        <allure.version>2.35.5</allure.version>
+        <allure.version>2.35.6</allure.version>
         <!-- The 7.x line on purpose, for the same reason: Cucumber 8 is built against JUnit 6, this project is on JUnit 5.14. -->
         <cucumber.version>7.34.9</cucumber.version>
 
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
-        <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
+        <exec-maven-plugin.version>3.7.0</exec-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
-        <spotless-maven-plugin.version>3.10.4</spotless-maven-plugin.version>
+        <spotless-maven-plugin.version>3.11.0</spotless-maven-plugin.version>
         <allure-maven.version>3.1.0</allure-maven.version>
         <!-- The Allure Report tool that allure-maven downloads to build the HTML report. -->
         <allure-report.version>2.46.1</allure-report.version>
